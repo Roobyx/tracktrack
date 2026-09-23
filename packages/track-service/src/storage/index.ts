@@ -44,11 +44,19 @@ export {
 export { migrateLegacyTaskLists } from './migrate-tasks.ts'
 export { OBSOLETE_SCOPE_IDS, removeObsoleteScopes } from './migrate-scopes.ts'
 export { S3StorageAdapter } from './s3.ts'
+export type { S3EndpointProbe, S3Env } from './s3-client.ts'
 export {
 	checkS3Connection,
+	DEFAULT_S3_PROBE_TIMEOUT_MS,
+	getS3,
 	getS3Client,
 	getS3Env,
+	invalidateS3Endpoint,
+	isS3EndpointTransportError,
+	parseS3Endpoints,
+	pickReachableS3Endpoint,
 	resetS3Client,
+	resolveS3Endpoint,
 	streamToBuffer,
 	trackKey,
 } from './s3-client.ts'

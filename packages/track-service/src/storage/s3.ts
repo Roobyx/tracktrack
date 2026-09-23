@@ -1,8 +1,10 @@
 import {
 	DeleteObjectCommand,
 	GetObjectCommand,
+	HeadBucketCommand,
 	ListObjectsV2Command,
 	PutObjectCommand,
+	type S3Client,
 } from '@aws-sdk/client-s3'
 import {
 	ConflictError,
@@ -10,7 +12,14 @@ import {
 	type StoredValue,
 	type WriteOptions,
 } from './adapter.ts'
-import { getS3Client, getS3Env, streamToBuffer, trackKey } from './s3-client.ts'
+import {
+	getS3,
+	getS3Env,
+	invalidateS3Endpoint,
+	isS3EndpointTransportError,
+	streamToBuffer,
+	trackKey,
+} from './s3-client.ts'
 
 // Re-exported for backward compatibility with code that imported these from
 // `@m2/track-service/src/storage/s3` (e.g. config-editor and legacy tests).
@@ -31,13 +40,34 @@ function s3StatusCode(error: unknown): number | undefined {
 	return (error as { $metadata?: { httpStatusCode?: number } }).$metadata?.httpStatusCode
 }
 
+/**
+ * Sends through the currently resolved endpoint. Transport-level failures drop
+ * the cached endpoint so the next call re-probes the candidate list; idempotent
+ * reads retry once immediately against the newly selected endpoint.
+ */
+async function runS3<T>(
+	operation: (client: S3Client) => Promise<T>,
+	options?: { retryTransport?: boolean },
+): Promise<T> {
+	try {
+		return await operation(await getS3())
+	} catch (error) {
+		const transport = isS3EndpointTransportError(error)
+		invalidateS3Endpoint(error)
+		if (!transport || !options?.retryTransport) throw error
+		return operation(await getS3())
+	}
+}
+
 export class S3StorageAdapter implements StorageAdapter {
 	async readValue<T = unknown>(path: string): Promise<StoredValue<T>> {
-		const s3 = getS3Client()
 		const key = trackKey(path)
 		const { bucket } = getS3Env()
 		try {
-			const response = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: key }))
+			const response = await runS3(
+				(s3) => s3.send(new GetObjectCommand({ Bucket: bucket, Key: key })),
+				{ retryTransport: true },
+			)
 			if (!response.Body) {
 				throw new Error(`S3 GetObject returned empty body for key: ${key}`)
 			}
@@ -52,19 +82,20 @@ export class S3StorageAdapter implements StorageAdapter {
 	}
 
 	async writeValue(path: string, data: unknown, options?: WriteOptions): Promise<string> {
-		const s3 = getS3Client()
 		const key = trackKey(path)
 		const { bucket } = getS3Env()
 		const json = JSON.stringify(data, null, '\t')
 		try {
-			const response = await s3.send(
-				new PutObjectCommand({
-					Bucket: bucket,
-					Key: key,
-					Body: json,
-					ContentType: 'application/json',
-					...(options?.ifMatch ? { IfMatch: options.ifMatch } : {}),
-				}),
+			const response = await runS3((s3) =>
+				s3.send(
+					new PutObjectCommand({
+						Bucket: bucket,
+						Key: key,
+						Body: json,
+						ContentType: 'application/json',
+						...(options?.ifMatch ? { IfMatch: options.ifMatch } : {}),
+					}),
+				),
 			)
 			return response.ETag ?? `"etag-${Date.now()}"`
 		} catch (error) {
@@ -76,25 +107,27 @@ export class S3StorageAdapter implements StorageAdapter {
 	}
 
 	async deleteValue(path: string): Promise<void> {
-		const s3 = getS3Client()
 		const key = trackKey(path)
 		const { bucket } = getS3Env()
-		await s3.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }))
+		await runS3((s3) => s3.send(new DeleteObjectCommand({ Bucket: bucket, Key: key })))
 	}
 
 	async listValues(prefix: string): Promise<string[]> {
-		const s3 = getS3Client()
 		const keyPrefix = trackKey(prefix)
 		const { bucket, prefix: envPrefix } = getS3Env()
 		const files: string[] = []
 		let continuationToken: string | undefined
 		do {
-			const response = await s3.send(
-				new ListObjectsV2Command({
-					Bucket: bucket,
-					Prefix: keyPrefix,
-					...(continuationToken ? { ContinuationToken: continuationToken } : {}),
-				}),
+			const response = await runS3(
+				(s3) =>
+					s3.send(
+						new ListObjectsV2Command({
+							Bucket: bucket,
+							Prefix: keyPrefix,
+							...(continuationToken ? { ContinuationToken: continuationToken } : {}),
+						}),
+					),
+				{ retryTransport: true },
 			)
 			if (response.Contents) {
 				for (const obj of response.Contents) {
@@ -114,9 +147,9 @@ export class S3StorageAdapter implements StorageAdapter {
 	async healthCheck(): Promise<boolean> {
 		try {
 			const { bucket } = getS3Env()
-			await getS3Client().send(
-				new (await import('@aws-sdk/client-s3')).HeadBucketCommand({ Bucket: bucket }),
-			)
+			await runS3((s3) => s3.send(new HeadBucketCommand({ Bucket: bucket })), {
+				retryTransport: true,
+			})
 			return true
 		} catch {
 			return false

@@ -1,6 +1,6 @@
 {
 	"name": "tracktrack-workspace",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"private": true,
 	"description": "TrackTrack — headless task tracking service with a standalone web GUI and an MCP endpoint",
 	"type": "module",

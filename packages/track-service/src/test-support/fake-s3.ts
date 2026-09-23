@@ -96,6 +96,7 @@ export const fakeS3Client = {
 export const fakeS3Module = {
 	getS3Env: () => ({
 		endpoint: 'http://fake-s3.local',
+		endpoints: ['http://fake-s3.local'],
 		region: 'eu-central-1',
 		accessKey: 'test-access',
 		secretKey: 'test-secret',
@@ -103,7 +104,11 @@ export const fakeS3Module = {
 		prefix: 'tracktrack/',
 	}),
 	getS3Client: () => fakeS3Client,
+	getS3: async () => fakeS3Client,
 	resetS3Client: () => {},
+	invalidateS3Endpoint: () => {},
+	isS3EndpointTransportError: () => false,
+	resolveS3Endpoint: async () => 'http://fake-s3.local',
 	checkS3Connection: async () => {},
 	trackKey: (path: string) => `tracktrack/${path}`,
 	streamToBuffer: async (stream: AsyncIterable<Buffer>): Promise<Buffer> => {

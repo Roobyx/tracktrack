@@ -32,6 +32,31 @@ backend is uniformly supported. Soft-deleted task files are physically pruned on
   `TRACKTRACK_S3_BUCKET`, `TRACKTRACK_S3_PREFIX`, `TRACKTRACK_S3_REGION`) — required only when S3
   is the primary or a backup target.
 
+## Endpoint fallback
+
+`TRACKTRACK_S3_ENDPOINT` / `BUCKET_SERVER_ENDPOINT` accept a comma- or whitespace-separated
+**candidate list** instead of a single address:
+
+```bash
+BUCKET_SERVER_ENDPOINT=http://192.168.1.2:9004,https://s3.example.com
+```
+
+The list is resolved once and cached: with several candidates each is probed with a `HeadBucket`
+(any HTTP reply counts as reachable; only DNS/refused/timeout failures count as unreachable) and the
+first reachable one wins, in the order given. `TRACKTRACK_S3_ENDPOINT_PROBE_TIMEOUT_MS` bounds each
+probe (default 1500). With a single candidate no probe is issued, so existing deployments behave
+exactly as before.
+
+This makes one deployment work both on the LAN and through a tunnel/proxy without split-horizon DNS
+or per-environment config. When an operation fails at the transport level the cached endpoint is
+dropped and the list is re-probed on the next operation; idempotent reads retry once immediately
+against the newly selected endpoint, while writes/delete surface that error and use the fallback on
+the following request. A non-transport error (404, 412, 403, ...) never triggers a switch, since the
+endpoint obviously answered.
+
+**Every candidate must address the same bucket.** Pointing candidates at different buckets would
+fork the data as soon as the fallback is selected.
+
 ## Backup sync (optional)
 
 Set `TRACKTRACK_BACKUP_TO_S3=true` to periodically replicate the primary store into S3

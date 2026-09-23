@@ -51,6 +51,17 @@ When `TRACKTRACK_STORAGE=s3` or `TRACKTRACK_BACKUP_TO_S3=true`, an S3 bucket is
 required. Point `BUCKET_SERVER_ENDPOINT` at an external S3, or enable the
 embedded RustFS bucket profile. See `packages/track-service/STORAGE.md`.
 
+`BUCKET_SERVER_ENDPOINT` (or `TRACKTRACK_S3_ENDPOINT`) accepts a comma- or
+whitespace-separated fallback list, e.g. a LAN address plus a tunneled address:
+
+```bash
+BUCKET_SERVER_ENDPOINT=http://192.168.1.2:9004,https://s3.example.com
+```
+
+Candidates are probed once and the first reachable endpoint is used; the list is
+re-probed whenever the active endpoint stops answering. Every candidate must
+address the same bucket, otherwise data forks.
+
 ## Docker / Portainer
 
 ```bash
