@@ -76,12 +76,22 @@ For Portainer, create a stack from this GitHub repository using
 `docker-compose.yml`, then paste the `.env` contents into the stack's
 environment-variable editor and deploy.
 
+## Authentication
+
+REST and MCP-over-HTTP calls authenticate with a session token, sent as either
+`Authorization: Bearer <token>` or `X-TrackTrack-Token: <token>`. The web GUI
+sends both, because some reverse proxies (for example the NetBird proxy) strip
+the `Authorization` header before forwarding. Use the mirrored header when such
+a proxy sits in front of the service; a missing token yields
+`Missing authorization token`, a wrong one `Invalid or expired session`.
+
 ## MCP
 
 - stdio: `pnpm mcp`
 - HTTP: `POST http://<host>:4358/` (or `TRACKTRACK_MCP_PORT`), stateless
   JSON-RPC reusing the API's MCP handler. Authenticate with `Authorization:
-  Bearer <session token>` or use the `login` tool.
+  Bearer <session token>` or `X-TrackTrack-Token: <session token>`, or use the
+  `login` tool.
 
 ## Related repos
 

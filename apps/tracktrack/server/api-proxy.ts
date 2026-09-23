@@ -107,6 +107,9 @@ export async function proxyTrackTrackRequest(
 				...(request.headers.authorization
 					? { authorization: String(request.headers.authorization) }
 					: {}),
+				...(request.headers['x-tracktrack-token']
+					? { 'x-tracktrack-token': String(request.headers['x-tracktrack-token']) }
+					: {}),
 				...(request.headers.accept ? { accept: String(request.headers.accept) } : {}),
 				...(request.headers['if-none-match']
 					? { 'if-none-match': String(request.headers['if-none-match']) }

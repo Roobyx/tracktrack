@@ -446,7 +446,7 @@ async function handleAuth(
 	}
 
 	if (action === 'logout' && request.method === 'POST') {
-		const token = extractBearerToken(request)
+		const token = extractAuthToken(request)
 		if (token) {
 			await deleteSession(token)
 		}
@@ -455,7 +455,7 @@ async function handleAuth(
 	}
 
 	if (action === 'me' && request.method === 'GET') {
-		const token = extractBearerToken(request)
+		const token = extractAuthToken(request)
 		if (!token) {
 			respondJson(response, 401, { errors: ['Missing authorization token'] })
 			return
@@ -482,7 +482,7 @@ async function handleUsers(
 	response: ServerResponse,
 	segments: string[],
 ): Promise<void> {
-	const token = extractBearerToken(request)
+	const token = extractAuthToken(request)
 	if (!token) {
 		respondJson(response, 401, { errors: ['Missing authorization token'] })
 		return
@@ -620,7 +620,7 @@ async function handleProjects(
 	response: ServerResponse,
 	segments: string[],
 ): Promise<void> {
-	const token = extractBearerToken(request)
+	const token = extractAuthToken(request)
 	if (!token) {
 		respondJson(response, 401, { errors: ['Missing authorization token'] })
 		return
@@ -729,7 +729,7 @@ async function handleScopes(
 	response: ServerResponse,
 	segments: string[],
 ): Promise<void> {
-	const token = extractBearerToken(request)
+	const token = extractAuthToken(request)
 	if (!token) {
 		respondJson(response, 401, { errors: ['Missing authorization token'] })
 		return
@@ -1404,7 +1404,7 @@ async function handleAiSettings(
 	response: ServerResponse,
 	segments: string[],
 ): Promise<void> {
-	const token = extractBearerToken(request)
+	const token = extractAuthToken(request)
 	if (!token) {
 		respondJson(response, 401, { errors: ['Missing authorization token'] })
 		return
@@ -1503,10 +1503,22 @@ async function handleAiSettings(
 	respondJson(response, 404, { errors: ['Not found'] })
 }
 
-function extractBearerToken(request: IncomingMessage): string | null {
+/**
+ * Reads the session token from `Authorization: Bearer ...` or, as a fallback,
+ * from the `X-TrackTrack-Token` header. Some reverse proxies (e.g. NetBird's
+ * reverse proxy with header authentication) consume and strip the
+ * Authorization header before forwarding, so the mirrored header keeps
+ * sessions working through those hops.
+ */
+function extractAuthToken(request: IncomingMessage): string | null {
 	const auth = request.headers.authorization
-	if (!auth?.startsWith('Bearer ')) return null
-	return auth.slice(7).trim()
+	if (auth?.startsWith('Bearer ')) {
+		const token = auth.slice(7).trim()
+		if (token) return token
+	}
+	const mirror = request.headers['x-tracktrack-token']
+	const value = Array.isArray(mirror) ? mirror[0] : mirror
+	return value?.trim() || null
 }
 
 function readJsonBody(request: IncomingMessage): Promise<Record<string, unknown>> {
@@ -1600,7 +1612,7 @@ export async function handleMcp(request: IncomingMessage, response: ServerRespon
 		return
 	}
 
-	const token = extractBearerToken(request)
+	const token = extractAuthToken(request)
 	let auth: AuthState | null = null
 	if (token) {
 		const session = await findSessionByToken(token)

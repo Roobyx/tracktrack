@@ -93,6 +93,10 @@ async function request<T>(path: string, options?: RequestInit & { etagKey?: stri
 	const headers: Record<string, string> = {}
 	if (token) {
 		headers.Authorization = `Bearer ${token}`
+		// Reverse proxies can consume the Authorization header (NetBird's reverse
+		// proxy strips the header it authenticates with, for example). Mirror the
+		// session token in a dedicated header so it survives the proxy hop.
+		headers['X-TrackTrack-Token'] = token
 	}
 	if (options?.body && !(options.body instanceof FormData)) {
 		headers['Content-Type'] = 'application/json'
