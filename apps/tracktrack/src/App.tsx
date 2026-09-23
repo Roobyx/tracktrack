@@ -71,8 +71,7 @@ export function App() {
 				<div class="app-brand">
 					<div class="app-logo" aria-hidden="true">
 						<svg viewBox="0 0 24 24" width="18" height="18" focusable="false">
-							<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H18a2 2 0 0 1 2 2v13.5a2.5 2.5 0 0 1-2.5 2.5H6.5A2.5 2.5 0 0 1 4 18.5z" fill="none" stroke="currentColor" stroke-width="1.8" />
-							<path d="M8 9h8M8 13h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+							<path d="M4.1 8.1 7.1 11.1 11.8 5.3M4.1 13.3H19.1M4.1 18.8H15.6" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" />
 						</svg>
 					</div>
 					<span class="app-name">TrackTrack</span>
