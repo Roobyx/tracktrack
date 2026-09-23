@@ -1,0 +1,555 @@
+{
+	"version": "0.2.1",
+	"latestBuild": "2026.09.05",
+	"projects": {
+		"root": {
+			"version": "0.2.0",
+			"entries": [
+				{
+					"version": "0.2.0",
+					"date": "2026-08-28T00:00:00.000Z",
+					"changes": [
+						"TrackTrack: additional tags can now be created and registered per scope from the REST API, the MCP create_tag tool, and the config-editor task create/edit flow"
+					],
+					"buildNumber": "2026.08.28"
+				}
+			]
+		},
+		"engine": {
+			"version": "0.2.0",
+			"entries": [
+				{
+					"version": "0.2.0",
+					"date": "2026-08-14T00:00:00.000Z",
+					"changes": [
+						"Added SpriteAnimator primitive: allocation-free frame animator for Pixi sprites with loop/finished semantics and base-texture restore on stop",
+						"Exported AnimationClipData type and SpriteAnimator from the engine index for cross-game reuse"
+					],
+					"buildNumber": "2026.08.14"
+				},
+				{
+					"version": "0.1.1",
+					"date": "2026-08-14T00:00:00.000Z",
+					"changes": [
+						"Added WebAudio-based AudioService with master/music/sfx gain buses, lazy context creation with user-gesture unlock, and synthesized SFX/music rendered into cached AudioBuffers (no network assets)",
+						"Added config-driven SfxDefinition and MusicTrackDefinition types plus noteToFrequency helper; every method is a safe no-op in non-WebAudio environments",
+						"Added muted flag to GameSettings for persisted mute state"
+					],
+					"buildNumber": "2026.08.14"
+				},
+				{
+					"version": "0.1.0",
+					"date": "2026-08-14T00:00:00.000Z",
+					"changes": [
+						"Added WebAudio-based AudioService with master/music/sfx gain buses, lazy context creation with user-gesture unlock, and synthesized SFX/music rendered into cached AudioBuffers (no network assets)",
+						"Added config-driven SfxDefinition and MusicTrackDefinition types plus noteToFrequency helper; every method is a safe no-op in non-WebAudio environments",
+						"Added muted flag to GameSettings for persisted mute state"
+					],
+					"buildNumber": "2026.08.14"
+				},
+				{
+					"version": "0.0.2",
+					"date": "2026-08-13T00:00:00.000Z",
+					"changes": [
+						"Added optional isElite field to EnemySaveData so elite enemy state survives save/restore"
+					],
+					"buildNumber": "2026.08.13"
+				}
+			]
+		},
+		"track-service": {
+			"version": "0.3.0",
+			"entries": [
+				{
+					"version": "0.3.0",
+					"date": "2026-08-28T00:00:00.000Z",
+					"changes": [
+						"Added addScopeTag service: appends a tag to a scope tag catalog with case-insensitive dedupe, trimming and an EmptyTagError guard"
+					],
+					"buildNumber": "2026.08.28"
+				},
+				{
+					"version": "0.2.1",
+					"date": "2026-08-28T00:00:00.000Z",
+					"changes": [
+						"Single-writer hardening: per-key in-process async mutex around every read-modify-write and S3 conditional writes (If-Match) with typed ConflictError on stale ETag",
+						"createTaskWithNumber folds task-number allocation into the same locked section as task insert",
+						"softDeleteBoard saves board and detaches tasks atomically; session cleanup runs on an interval and after each login",
+						"Auth hardening: scrypt-hashed PINs with hash-on-read migration, random bootstrap PIN, per-IP+name login rate limiting, 1MB body cap, generic 500s with request ids",
+						"TRACKTRACK_HOST env/--host bind defaulting to 127.0.0.1; MCP stdio line buffering and serialized tool calls"
+					],
+					"buildNumber": "2026.08.28"
+				},
+				{
+					"version": "0.2.0",
+					"date": "2026-08-27T00:00:00.000Z",
+					"changes": [
+						"Added Board entity between Scope and Task: nullable Task.boardId, Inbox pseudo-board for tasks without a board",
+						"Added boards.ts service: create (order = max+1), update, soft-delete with task detach, task count helper",
+						"Extended searchTasks with boards filter incl. none sentinel for Inbox matching",
+						"Added boardId to Task zod schemas (create/update/validate) so it survives parse-based validation"
+					],
+					"buildNumber": "2026.08.27"
+				},
+				{
+					"version": "0.1.0",
+					"date": "2026-08-22T00:00:00.000Z",
+					"changes": [
+						"Initial headless task tracking core: User, Scope, Task, View, Session types",
+						"Zod validation schemas for all domain models",
+						"S3-backed atomic JSON storage (read/write/delete/list)",
+						"PIN-based auth with session management and 24h expiry",
+						"Sequential task numbering per scope with prefix formatting",
+						"Scope CRUD with default states/priorities/tags"
+					],
+					"buildNumber": "2026.08.22"
+				}
+			]
+		},
+		"void": {
+			"version": "0.9.1",
+			"entries": [
+				{
+					"version": "0.9.1",
+					"date": "2026-08-28T00:00:00.000Z",
+					"changes": [
+						"Fixed spawner infinite loop on failed pool acquire (break instead of continue) and made enemy texture preload failures fatal",
+						"Fixed wave-end and teardown pool leaks: scheduled spawns are released to the pool and active enemies fully release (collider unregister, particle recycle, pool return)",
+						"Weapon lifetimes moved to game time: AOE throw/detonation and sweep sprite cleanup step on the weapon game-time task list, attack colliders age via accumulated delta, removing all weapon setTimeout/rAF",
+						"Explosive splash now rolls through calculateWeaponDamage (owner multiplier + crit) and reports correct damageDealt stats",
+						"Persistent ground effects capture enemy position/activeness before takeDamage so kill feedback anchors at the death spot",
+						"Save restore validates the payload against a zod schema with numeric clamping and fails gracefully on corrupt saves",
+						"Player.addWeapon returns boolean and never silently drops the added weapon",
+						"BackgroundTilemap replaced with a single TilingSprite (removes 16k sprites and the per-frame culling loop); enemy particles pooled per texture; swap-remove in spawner; allocation trims in fireWeapons, targeting and projectile stepping",
+						"VfxManager honors configured lifetimes/pool sizes; hardcoded gameplay constants moved into globalSettings (combat, steering, spawning, pooling, world, autosave) and weapon schema defaults"
+					],
+					"buildNumber": "2026.08.28"
+				},
+				{
+					"version": "0.9.0",
+					"date": "2026-08-14T00:00:00.000Z",
+					"changes": [
+						"Added animation/VFX system (Chunk F): spritesheet atlas pipeline (Pixi v8 JSON), manifest SPRITESHEETS registry, tolerant LoadingScene loading with progress, generated single-frame spritesheets via script for all enemies and player",
+						"Added SpriteAnimator to enemies and player: config-driven move/die/idle/run/hurt clips with frameRate/loop, per-enemy animation in enemyCatalogue.json, pool-safe texture restore on release",
+						"Added VfxManager with config-driven juice: screen shake (camera-root offset), enemy hit flash (tint lerp), pooled ParticleContainer death particles, boss entrance shake, level-up burst, pickup sparkle, muzzle flash, explosion flash + shockwave ring, sweep trail",
+						"Wired weapon VFX events: weaponFired (muzzle flash), explosionVfx (AOE detonation + OnHitPipeline explosion), sweepTrail from SweepWeapon, pickup position for sparkle",
+						"Added vfx.json config domain with schema, registry and editor meta; added animation fields to enemyCatalogue schema and meta",
+						"All new systems are pooling-first, world-space, event-decoupled and config-driven with no hardcoded values"
+					],
+					"buildNumber": "2026.08.14"
+				},
+				{
+					"version": "0.8.1",
+					"date": "2026-08-14T00:00:00.000Z",
+					"changes": [
+						"Added audio config domain (audio.json): 20 synthesized SFX definitions (tone/sweep/noise with envelopes and per-sound throttle), a looping void-theme music track, event-to-SFX wiring and musicByBiome mapping, all editable in the config editor with schema and metadata",
+						"Added SfxManager: registers configured sounds into the engine AudioService, plays hit/crit/kill/boss kill/boss spawn sounds, per-kind pickup sounds (gem/heal/coin/chest/vacuum/bomb), level-up jingle, upgrade/evolution sounds, player hurt/death, UI clicks, wave start and victory/game-over stings",
+						"Added bossSpawned game event emitted by the spawner for boss spawn audio",
+						"Added looping music per biome: game scenes start the configured biome track on entry and stop it on exit; audio suspends on pause and resumes on play",
+						"Settings menu now has master/music/sfx volume sliders and a mute toggle, persisted through SaveManager settings and applied live",
+						"Audio survives restarts: the AudioService is app-lifetime, buffers are cached, and the context is unlocked on the first user gesture"
+					],
+					"buildNumber": "2026.08.14"
+				},
+				{
+					"version": "0.7.0",
+					"date": "2026-08-14T00:00:00.000Z",
+					"changes": [
+						"Added passives config domain: 10 passive items with per-level stat bonuses (multiplier or additive application), max levels and editor metadata; passives appear as level-up cards alongside weapons/stats and level up when re-acquired",
+						"Added evolution config domain: 4 recipes (whip+bloodlust, bullet+quickening, grenade+scholar-pact, homing-missile+magnet-heart); the new chest pickup kind triggers evolution when the weapon is at max level and the passive is owned",
+						"Added 4 evolved weapons to the catalogue (Bloody Whip, Void Pistol, Doomsday, Swarm Missiles) with distinct boosted scaling",
+						"Added luck, xpGain, healthRegen and dodgeChance to the player stat catalog: luck boosts rare card weighting, xpGain scales gem XP, healthRegen ticks HP per second, dodgeChance rolls to negate incoming damage",
+						"Added chest, vacuum and bomb pickup kinds wired into default/boss/elite drop tables: vacuum collects all pickups, bomb damages all active enemies",
+						"Stat upgrades now use a config-driven application mode (additive vs multiplier); armor no longer special-cased in code",
+						"Player weapon and passive slot counts are now config-driven via globalSettings.player"
+					],
+					"buildNumber": "2026.08.14"
+				},
+				{
+					"version": "0.6.1",
+					"date": "2026-08-14T00:00:00.000Z",
+					"changes": [
+						"Extracted all shared gameplay logic into BaseGameScene: managers, victory/death flow, enforcer, endless mode, HUD, level-up, save/restore, camera and viewport",
+						"GrassLandScene is now a thin biome subclass that only resolves config bundle and tileset from the biome registry; new biomes no longer copy gameplay code",
+						"Autosave, restart and attack-mode wiring in main.ts now key off BaseGameScene so future biome scenes work unchanged"
+					],
+					"buildNumber": "2026.08.14"
+				},
+				{
+					"version": "0.6.0",
+					"date": "2026-08-14T00:00:00.000Z",
+					"changes": [
+						"Added reaper-style enforcer: config-driven invincible boss that spawns when the final wave timer expires with enemies still alive (globalSettings.enforcerEnabled toggle)",
+						"Added biome selection architecture: registry config, select menu with available/coming-soon slots, and scene factory parameterized by biome id",
+						"Added endless mode toggle: post-victory wave looping with scaled budget (globalSettings.endlessMode flag)",
+						"Tuned maxEnemiesOnScreen performance cap from 150 to 200"
+					],
+					"buildNumber": "2026.08.14"
+				},
+				{
+					"version": "0.5.1",
+					"date": "2026-08-14T00:00:00.000Z",
+					"changes": [
+						"Added isActive runtime spawn-state flag to enemies; OnHitPipeline effects and spawner update loop now skip pooled enemies already released this frame",
+						"Fixed elite boss chase speed: phase moveSpeedMultiplier now composes with elite speed factor instead of overwriting it",
+						"Refactored ranged attack to tickRangedVolley: merged volley config is built only when firing, eliminating per-enemy-per-frame allocation",
+						"Simplified cat-boss projectile config: bossBehavior phases now fully control volley params, removing redundant top-level fireIntervalMs/speed/bulletCount/spreadAngleDeg"
+					],
+					"buildNumber": "2026.08.14"
+				},
+				{
+					"version": "0.5.0",
+					"date": "2026-08-13T00:00:00.000Z",
+					"changes": [
+						"Added enemy projectile system: pooled world-space shots with EnemyProjectile collision category, armor-mitigated player damage and i-frame protection",
+						"Added ranged enemies spitter and hexer (config-driven projectile blocks: fire interval, speed, lifetime, damage, bullet count, spread, fire range) wired into mid/late wave phases",
+						"Added cat-boss combat behavior: aimed spread volleys and three enrage phases at HP thresholds (speed, volley interval, bullet count, spread, projectile speed all config-driven)",
+						"Added elite enemies: phase eliteChance and explicit-wave isElite flags roll spawns into elites with multiplied health/damage/speed and the guaranteed-rich elite-drops table",
+						"Added OnHitPipeline effects driven by damageTypes.json: physical knockback, explosive splash with falloff, bleeding DoT procs with stacking",
+						"Added enemyDeathVfx game event as the death-VFX hook point for the upcoming visuals chunk"
+					],
+					"buildNumber": "2026.08.13"
+				},
+				{
+					"version": "0.4.0",
+					"date": "2026-08-13T00:00:00.000Z",
+					"changes": [
+						"Defaulted debug toggles (nerdInfo, showCollisionBoxes) to off in globalSettings.json and the Zod schema; they remain config-editor toggles",
+						"Retargeted bullet and shotgun weapons to nearest-enemy targeting instead of cursor for survivor-like auto-aim behavior"
+					],
+					"buildNumber": "2026.08.13"
+				},
+				{
+					"version": "0.3.0",
+					"date": "2026-08-13T00:00:00.000Z",
+					"changes": [
+						"Added isBoss enemy rule: bosses spawn only via explicitWavesConfig and show a dedicated HUD boss health bar",
+						"Added boss-drops drop table (4-6 guaranteed drops weighted toward large XP gems) and wired cat-boss to it",
+						"Fixed pnpm typecheck gate: engine @types/node linkage restored, typecheck covers void",
+						"Created planning/backlog.md and planning/ARCHITECTURE.md matching implemented reality"
+					],
+					"buildNumber": "2026.08.13"
+				},
+				{
+					"version": "0.2.0",
+					"date": "2026-08-13T00:00:00.000Z",
+					"changes": [
+						"Replaced dev GrassBiome values with a real 21-wave, ~17.5-minute run progression (phase unlocks at waves 7 and 14, two difficulty spikes)",
+						"Added explicit wave support: final wave spawns cat-boss with a 60-second duration override"
+					],
+					"buildNumber": "2026.08.13"
+				},
+				{
+					"version": "0.1.1",
+					"date": "2026-08-13T00:00:00.000Z",
+					"changes": [
+						"Replaced window.location.reload() restart with Director-based scene restart (full manager teardown/re-init)"
+					],
+					"buildNumber": "2026.08.13"
+				}
+			]
+		},
+		"tracktrack": {
+			"version": "0.12.1",
+			"entries": [
+				{
+					"version": "0.12.0",
+					"date": "2026-09-05T00:00:00.000Z",
+					"changes": [
+						"The TrackTrack container now runs three servers at once: the API server (TRACKTRACK_PORT, 4356), a standalone web GUI server (TRACKTRACK_WEB_PORT, 4357) and an MCP-over-HTTP endpoint (TRACKTRACK_MCP_PORT, 4358), supervised by a new entrypoint that stops the container if any server dies so compose restarts the whole stack",
+						"Added server/web-server.ts: serves the built GUI on its own port with a /api/tracktrack proxy (auth, ETag and 1MB body limit passthrough) to the API server, so the GUI works standalone",
+						"Added server/http-mcp.ts: stateless MCP JSON-RPC over HTTP reusing the API's /api/tracktrack/mcp handler (Bearer session token or the login tool for auth); TRACKTRACK_WEB=false drops the web server and TRACKTRACK_MCP=false drops the MCP server"
+					],
+					"buildNumber": "2026.09.05"
+				},
+				{
+					"version": "0.11.0",
+					"date": "2026-09-05T00:00:00.000Z",
+					"changes": [
+						"Added a task picker to the AI assessment dialog: a checkbox list of every task in the current view with All/None shortcuts and a live count plus token estimate, so any subset of tasks can be assessed",
+						"The per-task Assess action in the issue drawer now opens the assessment dialog pre-selected to just that task instead of defaulting to every task in the view"
+					],
+					"buildNumber": "2026.09.05"
+				},
+				{
+					"version": "0.10.0",
+					"date": "2026-09-05T00:00:00.000Z",
+					"changes": [
+						"Complete GUI rebuild: original modern interface with List, Board, Planning and Overview views modeled on the config-editor Tasks workflows",
+						"Added a robust theming system: dark mode by default, light theme, five vibrant accent colors and a compact density mode, all persisted locally",
+						"Added Settings page: appearance (theme/accent/density), admin AI key + default assessment model management (writes the repo-root .env), admin user management with role editing, and account logout",
+						"Added saved views: store current filters as named views, apply, update and delete them (server views CRUD now used by the GUI)",
+						"Added planning table: sortable columns, inline optimistic planning edits (status, ratings, effect, notes with debounce), shift-range multi-select, select-by-tag and bulk status/state/priority/tag operations",
+						"Added kanban drag & drop with optimistic state changes and rollback, plus per-card state dropdown",
+						"Added AI assessment UX: single or batch assessment dialog with provider/model override, live job progress with cancel, usage totals and per-task errors",
+						"Added assessment query modes: full (default), effects-only (writes just the effect-on-game note) and a custom user query for the model, available in both the built-in GUI and the config-editor",
+						"Client now uses ETag conditional requests (If-None-Match) for scopes/boards/views/tasks so repeat loads resolve to 304s; server etag matcher fixed to handle comma-containing combined etags",
+						"Keyboard shortcuts: N new task, / search, 1-4 view switching, Esc close, ? help",
+						"Login screen redesign: centered card layout with branded header, accent ambient glow and constrained width instead of a full-width form",
+						"List view rebuilt as a master-detail layout: the issue list sits on the left while the selected issue opens in a detail pane on the right, the first issue is opened automatically, and an empty list shows a create-issue call to action"
+					],
+					"buildNumber": "2026.09.05"
+				},
+				{
+					"version": "0.8.1",
+					"date": "2026-09-04T00:00:00.000Z",
+					"changes": [
+						"Server logs the admin credentials (name / PIN) on every startup; the bootstrap PIN file now lives in TRACKTRACK_DATA_DIR (persistent volume in Docker) and a missing file rotates the admin PIN so logged credentials are always valid"
+					],
+					"buildNumber": "2026.09.04"
+				},
+				{
+					"version": "0.5.0",
+					"date": "2026-08-28T00:00:00.000Z",
+					"changes": [
+						"Added POST /api/tracktrack/scopes/:scopeId/tags so signed-in users can register new tags in a scope tag catalog (returns the updated scope, 404 on unknown scope)",
+						"Added MCP create_tag tool that registers a tag in a scope and returns the updated scope"
+					],
+					"buildNumber": "2026.08.28"
+				},
+				{
+					"version": "0.4.0",
+					"date": "2026-08-28T00:00:00.000Z",
+					"changes": [
+						"Auth model change: random bootstrap PIN written to a gitignored .tracktrack-bootstrap file, scrypt-hashed PIN storage with timing-safe comparison and hash-on-read migration",
+						"Login rate limiting (5 failures then 30s backoff), 1MB body cap, self-delete/last-admin guard on DELETE /users",
+						"TRACKTRACK_HOST env + --host bind (default 127.0.0.1) with logged bind address; scope-id slug validation",
+						"MCP stdio hardening: line buffering across stdin chunks and serialized message processing"
+					],
+					"buildNumber": "2026.08.28"
+				},
+				{
+					"version": "0.3.0",
+					"date": "2026-08-27T00:00:00.000Z",
+					"changes": [
+						"Added boards sub-resource REST API: list/create/update/delete with case-insensitive duplicate name 409 and unknown boardId 400 on task writes",
+						"Added ?board= repeatable query param (ids + none sentinel) to task list with hasFilter gating",
+						"Added MCP tools list_boards/create_board/update_board/delete_board plus board arg on list_tasks and boardId on create_task/update_task"
+					],
+					"buildNumber": "2026.08.27"
+				},
+				{
+					"version": "0.2.2",
+					"date": "2026-08-24T00:00:00.000Z",
+					"changes": [
+						"Redesigned task view to Jira-like split layout: task list sidebar + detail panel",
+						"Added TaskFormFields reusable component extracted from TaskEditor",
+						"Added TaskDetailPanel for inline read/edit task details in list view",
+						"Added TaskDetailView for read-only task display with rendered markdown",
+						"Added TaskList component for sidebar task cards with selection highlight",
+						"Refactored TaskEditor to support defaultMode prop (read/edit)",
+						"Kanban view now opens task detail overlay on card click",
+						"Added Delete button for admins in read mode",
+						"Extracted formatRelativeTime to shared utils"
+					],
+					"buildNumber": "2026.08.24"
+				},
+				{
+					"version": "0.2.1",
+					"date": "2026-08-24T00:00:00.000Z",
+					"changes": [
+						"Fixed +New Task button to open the markdown-enabled task editor with empty prefilled fields"
+					],
+					"buildNumber": "2026.08.24"
+				},
+				{
+					"version": "0.2.0",
+					"date": "2026-08-24T00:00:00.000Z",
+					"changes": [
+						"Enlarged task editor overlay to fullscreen with split-pane markdown preview",
+						"Added markdown toolbar (bold, italic, headings, link, code, lists, blockquote) to task editor",
+						"Added edit/split/read mode toggle for the description preview",
+						"Added .markdown-body styling with dark theme support to tracktrack stylesheet"
+					],
+					"buildNumber": "2026.08.24"
+				},
+				{
+					"version": "0.1.0",
+					"date": "2026-08-22T00:00:00.000Z",
+					"changes": [
+						"Initial TrackTrack app: Vite dev server with REST API middleware on /api/tracktrack",
+						"Standalone Node.js server (server/index.ts) with optional --web flag for static GUI serving",
+						"Web GUI: PIN login, scope selector, task list/kanban toggle, task editor with markdown preview, filters, settings panel for admin user management",
+						"Preact + htm + signals UI reusing config editor design system (CSS custom properties, light/dark theme)"
+					],
+					"buildNumber": "2026.08.22"
+				},
+				{
+					"version": "0.12.1",
+					"date": "2026-09-05T00:00:00.000Z",
+					"changes": [
+						"AI key/settings saves no longer die with an opaque Internal server error when the repo-root .env is transiently locked: writes retry briefly and a persistent lock now returns a clear 503 error naming the locked file and OS code"
+					],
+					"buildNumber": "2026.09.05"
+				}
+			]
+		},
+		"config-editor": {
+			"version": "0.7.0",
+			"entries": [
+				{
+					"version": "0.7.0",
+					"date": "2026-08-28T00:00:00.000Z",
+					"changes": [
+						"Added Create tag action in the TrackTrack task create/edit tag autocomplete: persists new tags to the scope catalog via the API, refreshes tag suggestions and filters live, and on failure falls back to a task-local tag with an inline error"
+					],
+					"buildNumber": "2026.08.28"
+				},
+				{
+					"version": "0.6.0",
+					"date": "2026-08-28T00:00:00.000Z",
+					"changes": [
+						"TrackTrack tab switched to a dumb HTTP proxy against TRACKTRACK_URL (single-writer: the standalone tracktrack server), removing the duplicated middleware",
+						"DOMPurify-sanitized markdown rendering with http/https-only link validation",
+						"Hardened uploads and snapshots: path containment/basename stripping, zod-validated snapshot restores, request.formData() multipart parsing",
+						"Save/validation UX: schema errors surfaced in the Inspector with real validation state; stale-closure fixes in domain loading and AI chat",
+						"Schema registry rekeyed to match the void config domains (uiConfig, Spawning scenes, budget/deterministic spawners); scoped vite allowedHosts"
+					],
+					"buildNumber": "2026.08.28"
+				},
+				{
+					"version": "0.5.0",
+					"date": "2026-08-27T00:00:00.000Z",
+					"changes": [
+						"Added board selector bar in TrackTrack tab: All/Inbox chips, board chips with delete, inline New Board form with optional color",
+						"Board filter wired into debounced task reload; selection persisted per scope and restored when valid",
+						"Added board dropdown to task forms (defaults to active board) and board badges in task list and detail views",
+						"Wired boards into the embedded TrackTrack dev-server middleware in vite.config.ts (scopes/:id/boards CRUD, ?board= task filter, boardId verification) matching the standalone server"
+					],
+					"buildNumber": "2026.08.27"
+				},
+				{
+					"version": "0.4.0",
+					"date": "2026-08-24T00:00:00.000Z",
+					"changes": [
+						"Redesigned editor layout: Snapshots moved from standalone tab to sub-page of Editor, triggered by topbar Snapshot button",
+						"Added context-aware sidebar: domain tree for Editor, file tree for Assets/Knowledge, AI session management for AI tab, hidden for WhatsNew/Settings",
+						"Added FileTreeSidebar component for collapsible folder/file tree views in Assets and Knowledge tabs",
+						"Added AISidebar component with vertical session list, provider selector, and API key management moved from AI chat header",
+						"Removed Snapshots tab from tab bar; sub-page uses content replacement pattern with back button"
+					],
+					"buildNumber": "2026.08.24"
+				},
+				{
+					"version": "0.3.3",
+					"date": "2026-08-24T00:00:00.000Z",
+					"changes": [
+						"Added markdown preview below description textarea in TrackTrackTab inline editor"
+					],
+					"buildNumber": "2026.08.24"
+				},
+				{
+					"version": "0.3.2",
+					"date": "2026-08-24T00:00:00.000Z",
+					"changes": [
+						"Restyled TrackTrack inputs and scope dropdown to match the config editor theme",
+						"Added TrackTrack settings sub-page with user info card, logout, and admin user management",
+						"Replaced text-based list/kanban toggle with icon-only view buttons matching the file browser pattern",
+						"Moved view toggle into the filters bar row alongside search and state filters",
+						"Added auto-refresh with 300ms debounce when filters change; removed manual Refresh button",
+						"Added More toggle dropdown that surfaces Priority, Tag, and Assignee filters"
+					],
+					"buildNumber": "2026.08.24"
+				},
+				{
+					"version": "0.3.1",
+					"date": "2026-08-24T00:00:00.000Z",
+					"changes": [
+						"Fixed TrackTrack auth: API client now sends Bearer token from login on every authenticated request",
+						"Wired task filters (search, state, priority, tag, assignee) to the backend query params",
+						"Added state/priority badge styling with design-token colors for list and kanban views",
+						"Fixed S3 env wiring so the embedded TrackTrack path reads .env and reaches the correct S3 endpoint",
+						"Added localStorage persistence for TrackTrack session token so refresh keeps the session",
+						"Documented bootstrap prerequisite and shared-backend design in vite.config.ts"
+					],
+					"buildNumber": "2026.08.24"
+				},
+				{
+					"version": "0.3.0",
+					"date": "2026-08-22T00:00:00.000Z",
+					"changes": [
+						"Added embedded TrackTrack tab with login gate, scope selector, list/kanban task views, task editor with markdown description, and admin user management",
+						"Added /api/tracktrack middleware to the Vite dev server so the embedded tab talks to the same S3-backed track-service without a separate server",
+						"Reused config editor design system (panel headers, segmented controls, cards, inputs, light/dark theme) for the embedded task UI"
+					],
+					"buildNumber": "2026.08.22"
+				},
+				{
+					"version": "0.2.1",
+					"date": "2026-08-22T00:00:00.000Z",
+					"changes": [
+						"Added Settings tab (gear icon in tab bar) with theme, editor mode, and auto-refresh preferences",
+						"Standardized every tab sub-header into a consistent title + actions bar (.panel-header pattern)",
+						"Moved theme and form/raw mode toggles out of the editor topbar into Settings; topbar now matches the shared header pattern"
+					],
+					"buildNumber": "2026.08.22"
+				},
+				{
+					"version": "0.2.0",
+					"date": "2026-08-22T00:00:00.000Z",
+					"changes": [
+						"Added unified FileBrowser shell component with shared folder creation, drag-and-drop, breadcrumb navigation, and path persistence",
+						"Refactored AssetBrowser and KnowledgeBrowser into thin wrappers around FileBrowser, removing duplicated state and helper functions",
+						"Extracted shared utilities (escapeHtml, escapeAttr, formatBytes, formatDate) into utils/file-browser.ts"
+					],
+					"buildNumber": "2026.08.22"
+				},
+				{
+					"version": "0.1.1",
+					"date": "2026-08-21T00:00:00.000Z",
+					"changes": [
+						"Added Knowledge tab with S3-backed document browser, markdown editor with WYSIWYG toolbar, and link document support"
+					],
+					"buildNumber": "2026.08.21"
+				}
+			]
+		}
+	},
+	"entries": [
+		{
+			"version": "0.2.0",
+			"date": "2026-08-28T00:00:00.000Z",
+			"changes": [
+				"TrackTrack tag catalogs are now extensible end to end: REST endpoint, MCP create_tag tool, and config-editor create-tag affordance in the task create/edit flow"
+			],
+			"buildNumber": "2026.08.28"
+		},
+		{
+			"version": "0.1.0",
+			"date": "2026-08-28T00:00:00.000Z",
+			"changes": [
+				"Cross-app review fixes: TrackTrack single-writer/auth hardening, config-editor proxy + XSS/path hardening, Void correctness and performance pass",
+				"Void: game-time weapon lifetimes, pooled particles/tiling background, zod-validated save restore, config-driven tuning constants"
+			],
+			"buildNumber": "2026.08.28"
+		},
+		{
+			"version": "0.1.0",
+			"date": "2026-08-27T00:00:00.000Z",
+			"changes": [
+				"Added TrackTrack Boards: Domain > Board > Task grouping with user-created boards per scope",
+				"Boards are user-creatable, soft-deleted with task detach to Inbox, and exposed over REST and MCP plus the config-editor GUI"
+			],
+			"buildNumber": "2026.08.27"
+		},
+		{
+			"version": "0.1.0",
+			"date": "2026-08-12T00:00:00.000Z",
+			"changes": [
+				"Added What's New tab to config editor",
+				"Converted Void WhatsNewPopup to HTML menu option",
+				"Added Vite build version injection (__BUILD_NUMBER__, __BUILD_ID__, __BUILD_TIMESTAMP__)",
+				"Added version bump CLI and whats-new.json sync across apps"
+			],
+			"buildNumber": "2026.08.12"
+		},
+		{
+			"version": "0.1.1",
+			"date": "2026-08-21T00:00:00.000Z",
+			"changes": [
+				"Added Knowledge tab with S3-backed document browser, markdown editor with WYSIWYG toolbar, and link document support"
+			],
+			"buildNumber": "2026.08.21"
+		}
+	]
+}

@@ -1,0 +1,39 @@
+# Keep the build context lean; never ship secrets or dev artifacts into images.
+
+# Secrets — .env must never enter an image. Patterns are root-anchored in
+# dockerignore, so both root-level and **/ recursive forms are required to
+# catch nested files (apps/tracktrack/.env, apps/tracktrack/.tracktrack-bootstrap).
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+.tracktrack-bootstrap
+**/.tracktrack-bootstrap
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+
+# Git and tooling
+.git
+.gitattributes
+.husky
+.vscode
+.kilo
+.kilocodeignore
+.aider*
+
+# Dependencies and build output (rebuilt inside the image)
+**/node_modules
+**/dist
+**/.vite
+**/tsconfig.tsbuildinfo
+coverage
+
+# Logs and misc
+.pm2-logs
+ecosystem.config.js
+**/*.log
+core
+core.*

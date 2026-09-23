@@ -1,0 +1,151 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# tracktrack — self-hosting stack (docker compose / Portainer)
+#
+# This file is the primary deployment interface. Every knob is an environment
+# variable with a safe default: copy .env.example to .env and adjust, or paste
+# the same content into a Portainer stack's "Environment variables" editor.
+#
+# Standalone : docker compose up -d --build
+# Rebuild    : docker compose build --no-cache && docker compose up -d
+# Portainer  : Stacks → Add stack → Repository (this repo) → Compose path
+#              docker-compose.yml, then paste the .env content in the env editor
+#              and deploy.
+#
+# Services
+#   tracktrack   TrackTrack API + web GUI + MCP endpoint, three ports   (node)
+#   rustfs       optional embedded S3 bucket (RustFS) — compose profile "bucket":
+#                docker compose --profile bucket up -d
+#                (then set BUCKET_SERVER_ENDPOINT=http://rustfs:9000)
+#
+# Notes
+#   • Images run as unprivileged users; no container needs privileged mode.
+#   • The API, web GUI and MCP servers run side by side in one container and are
+#     supervised by server/entrypoint.ts: if any of them exits the container
+#     exits too, so the restart policy brings the whole stack back together.
+# ─────────────────────────────────────────────────────────────────────────────
+name: tracktrack
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+services:
+  # ── TrackTrack: API (4356), web GUI (4357) and MCP HTTP (4358) ─────────────
+  tracktrack:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: tracktrack-runtime
+    image: tracktrack/tracktrack:latest
+    container_name: tracktrack
+    restart: unless-stopped
+    ports:
+      # Host and container ports are intentionally identical: each TRACKTRACK_*
+      # port is both the listening port inside the container and the published
+      # one.
+      - "${TRACKTRACK_PORT:-4356}:${TRACKTRACK_PORT:-4356}"
+      - "${TRACKTRACK_WEB_PORT:-4357}:${TRACKTRACK_WEB_PORT:-4357}"
+      - "${TRACKTRACK_MCP_PORT:-4358}:${TRACKTRACK_MCP_PORT:-4358}"
+    environment:
+      NODE_ENV: production
+      TRACKTRACK_HOST: 0.0.0.0
+      TRACKTRACK_PORT: ${TRACKTRACK_PORT:-4356}
+      TRACKTRACK_WEB_PORT: ${TRACKTRACK_WEB_PORT:-4357}
+      TRACKTRACK_MCP_PORT: ${TRACKTRACK_MCP_PORT:-4358}
+      TRACKTRACK_WEB: ${TRACKTRACK_WEB:-true}
+      TRACKTRACK_MCP: ${TRACKTRACK_MCP:-true}
+      TRACKTRACK_STORAGE: ${TRACKTRACK_STORAGE:-sqlite}
+      TRACKTRACK_DATA_DIR: /data
+      TRACKTRACK_BACKUP_TO_S3: ${TRACKTRACK_BACKUP_TO_S3:-false}
+      TRACKTRACK_BACKUP_INTERVAL_MS: ${TRACKTRACK_BACKUP_INTERVAL_MS:-15000}
+      TRACKTRACK_ASSESS_MODEL: ${TRACKTRACK_ASSESS_MODEL:-}
+      TRACKTRACK_SESSION_DAYS: ${TRACKTRACK_SESSION_DAYS:-30}
+      TRACKTRACK_ADMIN_PIN: ${TRACKTRACK_ADMIN_PIN:-}
+      # Set when a reverse proxy terminates TLS in front of the web GUI.
+      TRACKTRACK_API_URL: ${TRACKTRACK_API_URL:-}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      # The server falls back to BUCKET_* vars when TRACKTRACK_S3_* are unset
+      BUCKET_SERVER_ENDPOINT: ${BUCKET_SERVER_ENDPOINT:-}
+      BUCKET_ACCESS_KEY: ${BUCKET_ACCESS_KEY:-}
+      BUCKET_SECRET_KEY: ${BUCKET_SECRET_KEY:-}
+      BUCKET_NAME: ${BUCKET_NAME:-tracktrack}
+      S3_REGION: ${S3_REGION:-eu-central-1}
+      # Optional per-service S3 overrides (leave unset to use BUCKET_*)
+      TRACKTRACK_S3_ENDPOINT: ${TRACKTRACK_S3_ENDPOINT:-}
+      TRACKTRACK_S3_ACCESS_KEY: ${TRACKTRACK_S3_ACCESS_KEY:-}
+      TRACKTRACK_S3_SECRET_KEY: ${TRACKTRACK_S3_SECRET_KEY:-}
+      TRACKTRACK_S3_BUCKET: ${TRACKTRACK_S3_BUCKET:-}
+      TRACKTRACK_S3_PREFIX: ${TRACKTRACK_S3_PREFIX:-}
+      TRACKTRACK_S3_REGION: ${TRACKTRACK_S3_REGION:-}
+    volumes:
+      # SQLite database (default storage) + first-run admin PIN file
+      - tracktrack_data:/data
+    logging: *default-logging
+
+  # ── Optional embedded S3 storage — RustFS (enable with: --profile bucket) ─
+  rustfs:
+    image: rustfs/rustfs:latest
+    container_name: tracktrack-rustfs
+    profiles: ["bucket"]
+    restart: unless-stopped
+    security_opt:
+      - "no-new-privileges:true"
+    environment:
+      RUSTFS_ADDRESS: 0.0.0.0:9000
+      RUSTFS_CONSOLE_ADDRESS: 0.0.0.0:9001
+      RUSTFS_CONSOLE_ENABLE: "true"
+      # Server reuses the client credentials so BUCKET_* always matches
+      RUSTFS_ACCESS_KEY: ${BUCKET_ACCESS_KEY:-tracktrack}
+      RUSTFS_SECRET_KEY: ${BUCKET_SECRET_KEY:-changeme-bucket-root}
+    ports:
+      # Loopback by default; replace 127.0.0.1 with your host IP (or drop the
+      # prefix) to expose the S3 API / console on the LAN.
+      - "127.0.0.1:${BUCKET_API_PORT:-9010}:9000"
+      - "127.0.0.1:${BUCKET_CONSOLE_PORT:-9011}:9001"
+    volumes:
+      - bucket_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:9000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    logging: *default-logging
+
+  # Creates BUCKET_NAME if missing; exits after success
+  bucket-init:
+    image: amazon/aws-cli:latest
+    container_name: tracktrack-bucket-init
+    profiles: ["bucket"]
+    restart: "no"
+    depends_on:
+      rustfs:
+        condition: service_healthy
+    environment:
+      BUCKET_NAME: ${BUCKET_NAME:-tracktrack}
+      AWS_ACCESS_KEY_ID: ${BUCKET_ACCESS_KEY:-tracktrack}
+      AWS_SECRET_ACCESS_KEY: ${BUCKET_SECRET_KEY:-changeme-bucket-root}
+      AWS_DEFAULT_REGION: ${S3_REGION:-eu-central-1}
+    entrypoint: ["sh", "-c"]
+    command:
+      - |
+        n=0
+        until aws --endpoint-url http://rustfs:9000 s3api head-bucket --bucket "$$BUCKET_NAME" 2>/dev/null; do
+          n=$$((n + 1))
+          if [ "$$n" -ge 30 ]; then
+            echo "bucket-init: bucket '$$BUCKET_NAME' not ready after $$n attempts; last error:" >&2
+            aws --endpoint-url http://rustfs:9000 s3api head-bucket --bucket "$$BUCKET_NAME"
+            exit 1
+          fi
+          aws --endpoint-url http://rustfs:9000 s3api create-bucket --bucket "$$BUCKET_NAME" 2>/dev/null || true
+          sleep 2
+        done
+        echo "bucket-init: bucket '$$BUCKET_NAME' ready"
+    logging: *default-logging
+
+volumes:
+  tracktrack_data:
+  bucket_data:

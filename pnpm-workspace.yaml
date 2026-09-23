@@ -1,0 +1,17 @@
+packages:
+  - apps/*
+  - packages/*
+
+# pnpm >=11 re-runs `pnpm install` before scripts when the installed deps look
+# stale. In the Docker images COPY . . always makes them look stale, so the
+# unprivileged runtime user re-ran install and crashed with EACCES writing
+# pnpm temp files into root-owned /app. Deps are installed at build time with
+# --frozen-lockfile; skip the runtime re-check (note: the .npmrc spelling
+# `verify-deps-before-run` is ignored by pnpm 11, this key is the working one).
+verifyDepsBeforeRun: false
+
+allowBuilds:
+  esbuild: true
+
+onlyBuiltDependencies:
+  - esbuild

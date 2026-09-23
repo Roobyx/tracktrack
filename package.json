@@ -1,0 +1,37 @@
+{
+	"name": "tracktrack-workspace",
+	"version": "0.1.0",
+	"private": true,
+	"description": "TrackTrack — headless task tracking service with a standalone web GUI and an MCP endpoint",
+	"type": "module",
+	"scripts": {
+		"dev": "pnpm --filter tracktrack dev",
+		"dev:all": "pnpm --filter tracktrack start:all",
+		"server": "pnpm --filter tracktrack dev:server",
+		"web": "pnpm --filter tracktrack start:web",
+		"mcp": "pnpm --filter tracktrack mcp",
+		"reset:pin": "pnpm --filter tracktrack reset:pin",
+		"build": "pnpm --filter tracktrack build",
+		"lint": "biome lint .",
+		"format": "biome format --write .",
+		"format:check": "biome format .",
+		"check": "biome check --write .",
+		"typecheck": "pnpm -r typecheck",
+		"test": "vitest run",
+		"coverage": "vitest --coverage",
+		"verify": "pnpm format:check && pnpm -r typecheck && vitest run && pnpm build"
+	},
+	"keywords": [
+		"tracktrack",
+		"task-tracking",
+		"mcp"
+	],
+	"license": "ISC",
+	"packageManager": "pnpm@11.24.0",
+	"devDependencies": {
+		"@biomejs/biome": "2.4.16",
+		"@vitest/coverage-v8": "4.1.8",
+		"typescript": "^6.0.3",
+		"vitest": "^4.1.8"
+	}
+}

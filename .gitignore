@@ -1,0 +1,38 @@
+# Logs
+logs
+*.log
+lerna-debug.log*
+
+build/Release
+
+# Dependency directories
+node_modules/
+
+# TypeScript cache
+*.tsbuildinfo
+
+# dotenv environment variable files
+.env
+.env.*
+!.env.example
+
+dist
+
+# Editors / caches
+.cache/
+coverage/
+.github
+
+# Vite logs files
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
+
+# TrackTrack runtime data
+.tracktrack-bootstrap
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+
+# PM2
+.pm2-logs
+ecosystem.config.js

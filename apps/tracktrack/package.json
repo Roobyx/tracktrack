@@ -1,0 +1,38 @@
+{
+	"name": "tracktrack",
+	"version": "0.17.2",
+	"private": true,
+	"description": "Headless task tracking service with optional web GUI",
+	"type": "module",
+	"scripts": {
+		"dev": "vite --host 0.0.0.0",
+		"dev:server": "tsx server/index.ts",
+		"build": "tsc && vite build",
+		"start": "pnpm run dev:server",
+		"start:web": "pnpm run dev:server -- --web",
+		"web": "tsx server/web-server.ts",
+		"mcp": "node --import tsx/esm src/mcp-server.ts",
+		"mcp:http": "node --import tsx/esm server/http-mcp.ts",
+		"start:all": "node --import tsx/esm server/entrypoint.ts",
+		"reset:pin": "tsx server/reset-admin-pin.ts",
+		"lint": "biome lint src server vite.config.ts index.html public/style.css",
+		"typecheck": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@aws-sdk/client-s3": "^3.1114.0",
+		"@m2/track-service": "workspace:*",
+		"@preact/signals": "^2.10.1",
+		"htm": "^3.1.1",
+		"marked": "^18.0.9",
+		"preact": "^10.29.7",
+		"zod": "^4.4.3"
+	},
+	"devDependencies": {
+		"@aws-sdk/client-s3": "^3.1114.0",
+		"@types/node": "^25.9.1",
+		"dotenv": "^17.4.2",
+		"tsx": "^4.23.12",
+		"typescript": "^6.0.3",
+		"vite": "^6.2.0"
+	}
+}
