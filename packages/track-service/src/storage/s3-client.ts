@@ -12,28 +12,41 @@ export interface S3Env {
 
 let s3Client: S3Client | null = null
 
+/**
+ * First non-blank value among the given env names. Docker Compose interpolates
+ * optional vars as empty strings, so a blank override must not shadow a
+ * populated fallback (e.g. TRACKTRACK_S3_ENDPOINT="" vs BUCKET_SERVER_ENDPOINT).
+ */
+function firstEnv(...names: string[]): string | undefined {
+	for (const name of names) {
+		const value = process.env[name]?.trim()
+		if (value) return value
+	}
+	return undefined
+}
+
 export function getS3Env(): S3Env {
-	const endpoint = process.env.TRACKTRACK_S3_ENDPOINT ?? process.env.BUCKET_SERVER_ENDPOINT
+	const endpoint = firstEnv('TRACKTRACK_S3_ENDPOINT', 'BUCKET_SERVER_ENDPOINT')
 	if (!endpoint) {
 		throw new Error('Missing S3 endpoint: set TRACKTRACK_S3_ENDPOINT or BUCKET_SERVER_ENDPOINT')
 	}
-	const accessKey = process.env.TRACKTRACK_S3_ACCESS_KEY ?? process.env.BUCKET_ACCESS_KEY
+	const accessKey = firstEnv('TRACKTRACK_S3_ACCESS_KEY', 'BUCKET_ACCESS_KEY')
 	if (!accessKey) {
 		throw new Error('Missing S3 access key: set TRACKTRACK_S3_ACCESS_KEY or BUCKET_ACCESS_KEY')
 	}
-	const secretKey = process.env.TRACKTRACK_S3_SECRET_KEY ?? process.env.BUCKET_SECRET_KEY
+	const secretKey = firstEnv('TRACKTRACK_S3_SECRET_KEY', 'BUCKET_SECRET_KEY')
 	if (!secretKey) {
 		throw new Error('Missing S3 secret key: set TRACKTRACK_S3_SECRET_KEY or BUCKET_SECRET_KEY')
 	}
-	const bucket = process.env.TRACKTRACK_S3_BUCKET ?? process.env.BUCKET_NAME
+	const bucket = firstEnv('TRACKTRACK_S3_BUCKET', 'BUCKET_NAME')
 	if (!bucket) {
 		throw new Error('Missing S3 bucket: set TRACKTRACK_S3_BUCKET or BUCKET_NAME')
 	}
-	const prefix = process.env.TRACKTRACK_S3_PREFIX ?? 'tracktrack/'
+	const prefix = firstEnv('TRACKTRACK_S3_PREFIX') ?? 'tracktrack/'
 
 	return {
 		endpoint,
-		region: process.env.TRACKTRACK_S3_REGION ?? process.env.S3_REGION ?? 'eu-central-1',
+		region: firstEnv('TRACKTRACK_S3_REGION', 'S3_REGION') ?? 'eu-central-1',
 		accessKey,
 		secretKey,
 		bucket,
