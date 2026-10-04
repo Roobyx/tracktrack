@@ -85,6 +85,16 @@ services:
       TRACKTRACK_S3_BUCKET: ${TRACKTRACK_S3_BUCKET:-}
       TRACKTRACK_S3_PREFIX: ${TRACKTRACK_S3_PREFIX:-}
       TRACKTRACK_S3_REGION: ${TRACKTRACK_S3_REGION:-}
+      # ts-rogue knowledge base, read by the planning tab to create tasks from a
+      # knowledge file. Leave unset to disable "create tasks from file"; the
+      # server falls back to BUCKET_* when the TRACKTRACK_KNOWLEDGE_S3_* vars
+      # are unset, and always to the "knowledge/" prefix inside that bucket.
+      TRACKTRACK_KNOWLEDGE_S3_ENDPOINT: ${TRACKTRACK_KNOWLEDGE_S3_ENDPOINT:-}
+      TRACKTRACK_KNOWLEDGE_S3_ACCESS_KEY: ${TRACKTRACK_KNOWLEDGE_S3_ACCESS_KEY:-}
+      TRACKTRACK_KNOWLEDGE_S3_SECRET_KEY: ${TRACKTRACK_KNOWLEDGE_S3_SECRET_KEY:-}
+      TRACKTRACK_KNOWLEDGE_S3_BUCKET: ${TRACKTRACK_KNOWLEDGE_S3_BUCKET:-}
+      TRACKTRACK_KNOWLEDGE_S3_REGION: ${TRACKTRACK_KNOWLEDGE_S3_REGION:-}
+      TRACKTRACK_KNOWLEDGE_S3_PREFIX: ${TRACKTRACK_KNOWLEDGE_S3_PREFIX:-}
     volumes:
       # SQLite database (default storage) + first-run admin PIN file
       - tracktrack_data:/data

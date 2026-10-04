@@ -136,6 +136,15 @@ const SCOPE_GAME_CONTEXT: Record<string, string> = {
 const GENERIC_REFERENCES_FALLBACK =
 	'No curated reference list is available for this scope; use broadly similar games as inspiration (e.g. Vampire Survivors-like survivors games for action, classic dungeon roguelikes for turn-based).'
 
+/** One line of project context for a scope, shared by every planning prompt. */
+export function scopeGameContext(scope: Scope | null): string {
+	const scopeId = scope?.id ?? 'global'
+	return (
+		SCOPE_GAME_CONTEXT[scopeId] ??
+		`Scope "${scopeId}" (${scope?.name ?? 'unknown'}): tasks for the ts-rogue repository.`
+	)
+}
+
 async function loadReferenceFile(scopeId: string): Promise<string> {
 	const referencePath = resolve(workspaceRoot, `planning/${scopeId}/inspirational-references.md`)
 	try {
@@ -152,9 +161,7 @@ export async function buildSystemPrompt(
 	customQuery?: string,
 ): Promise<string> {
 	const scopeId = scope?.id ?? 'global'
-	const scopeContext =
-		SCOPE_GAME_CONTEXT[scopeId] ??
-		`Scope "${scopeId}" (${scope?.name ?? 'unknown'}): tasks for the ts-rogue repository.`
+	const scopeContext = scopeGameContext(scope)
 	const references = await loadReferenceFile(scopeId)
 
 	if (mode === 'effects') {
@@ -266,7 +273,7 @@ function isRetryableStatus(status: number): boolean {
 	return status === 429 || status >= 500
 }
 
-async function callLLMWithRetry(options: {
+export async function callLLMWithRetry(options: {
 	provider: LLMProvider
 	apiKey: string
 	model: string

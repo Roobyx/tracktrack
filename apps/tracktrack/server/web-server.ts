@@ -29,8 +29,7 @@ const port = Number.parseInt(
 )
 const host = readArgValue('--host') ?? process.env.TRACKTRACK_HOST ?? '127.0.0.1'
 const apiPort = process.env.TRACKTRACK_PORT ?? '4356'
-const apiUrl =
-	process.env.TRACKTRACK_API_URL?.trim() || `http://127.0.0.1:${apiPort}`
+const apiUrl = process.env.TRACKTRACK_API_URL?.trim() || `http://127.0.0.1:${apiPort}`
 const distDir = resolve(__dirname, '../dist')
 
 const PROXY_PREFIX = '/api/tracktrack'

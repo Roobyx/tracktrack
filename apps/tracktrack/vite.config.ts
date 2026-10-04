@@ -1,6 +1,19 @@
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { checkStorage, initStorage } from '@m2/track-service/src/storage/index'
+import { config as loadEnv } from 'dotenv'
 import { defineConfig, type Plugin } from 'vite'
-import { handleApiRequest } from './server/routes'
+import { handleApiRequest, runBootstrap } from './server/routes'
+
+const workspaceRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
+const envPath = resolve(workspaceRoot, '.env')
+
+const envResult = loadEnv({ path: envPath })
+if (envResult.error) {
+	console.error('[tracktrack] Failed to load root .env:', envResult.error)
+} else {
+	console.log('[tracktrack] Loaded .env from', envPath)
+}
 
 export default defineConfig({
 	plugins: [trackApiPlugin()],
@@ -16,6 +29,9 @@ function trackApiPlugin(): Plugin {
 		name: 'tracktrack-api',
 		configureServer(server) {
 			server.middlewares.use('/api/tracktrack', async (request, response) => {
+				const originalUrl = (request as typeof request & { originalUrl?: string })
+					.originalUrl
+				if (originalUrl) request.url = originalUrl
 				try {
 					await handleApiRequest(request, response)
 				} catch (error) {
@@ -25,6 +41,7 @@ function trackApiPlugin(): Plugin {
 				}
 			})
 			initStorage()
+				.then(() => runBootstrap())
 				.then(() => checkStorage())
 				.catch((error) => {
 					console.error('[tracktrack] Storage startup failed:', error)

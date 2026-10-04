@@ -15,6 +15,7 @@ import {
 	isAdmin,
 	isFilterActive,
 	isLoading,
+	knowledgeSplitDialog,
 	loadPref,
 	page,
 	reportError,
@@ -23,6 +24,7 @@ import {
 	selectedTask,
 	selection,
 	serverUnreachable,
+	splitJob,
 	tasks,
 	toast,
 	viewMode,
@@ -31,10 +33,12 @@ import {
 import { AssessDialog } from './AssessDialog'
 import { AssessJobPanel } from './AssessJobPanel'
 import { BoardView } from './BoardView'
+import { KnowledgeSplitDialog } from './KnowledgeSplitDialog'
 import { ListView } from './ListView'
 import { OverviewView } from './OverviewView'
 import { PlanningView } from './PlanningView'
 import { slugify } from './ProjectsPage'
+import { SplitJobPanel } from './SplitJobPanel'
 import { TaskDrawer } from './TaskDrawer'
 import { Toolbar } from './Toolbar'
 
@@ -310,6 +314,7 @@ export function TasksPage() {
 			}
 
 			${assessJob.value && html`<${AssessJobPanel} onRefresh=${loadTasks} />`}
+		${splitJob.value && html`<${SplitJobPanel} onRefresh=${loadTasks} />`}
 
 			<div class="tasks-content ${isListView ? 'tasks-content-split' : ''}">
 				${
@@ -398,6 +403,7 @@ export function TasksPage() {
 			}
 
 			${assessDialog.value && html`<${AssessDialog} onRefresh=${loadTasks} />`}
+		${knowledgeSplitDialog.value && html`<${KnowledgeSplitDialog} />`}
 		</div>
 	`
 }

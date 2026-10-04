@@ -68,6 +68,36 @@ export type AssessJobStatus = {
 	error?: string
 }
 
+/** A ts-rogue knowledge document that can be turned into tasks. */
+export type KnowledgeDocSummary = {
+	id: string
+	name: string
+	folder: string
+	size: number
+	updatedAt: string | null
+}
+
+export type SplitJobStatus = {
+	jobId: string
+	status: 'running' | 'done' | 'cancelled' | 'error'
+	docId: string
+	docName: string
+	chunks: { total: number; completed: number }
+	createdTaskIds: string[]
+	results: {
+		ok: boolean
+		title: string
+		taskId?: string
+		number?: number
+		error?: string
+	}[]
+	usageTotals: { promptTokens: number; completionTokens: number }
+	/** Assessment job this run chained into, so the GUI can follow it. */
+	assessJobId?: string
+	assessSkipped?: string
+	error?: string
+}
+
 let token: string | null = null
 
 export function setToken(value: string | null): void {
@@ -291,6 +321,29 @@ export const api = {
 		request<AssessJobStatus>(`/scopes/${scopeId}/planning/assess/${jobId}`),
 	cancelAssessment: (scopeId: string, jobId: string) =>
 		request(`/scopes/${scopeId}/planning/assess/${jobId}/cancel`, { method: 'POST' }),
+
+	getKnowledgeDocs: (scopeId: string, etagKey?: string) =>
+		request<{ documents: KnowledgeDocSummary[] }>(`/scopes/${scopeId}/planning/knowledge`, {
+			etagKey,
+		}).then((r) => r.documents),
+	startSplit: (
+		scopeId: string,
+		options: {
+			docId: string
+			boardId?: string | null
+			provider?: 'openrouter' | 'openai'
+			model?: string
+			assessAfter?: boolean
+		},
+	) =>
+		request<{ jobId: string }>(`/scopes/${scopeId}/planning/split`, {
+			method: 'POST',
+			body: JSON.stringify(options),
+		}),
+	getSplitJob: (scopeId: string, jobId: string) =>
+		request<SplitJobStatus>(`/scopes/${scopeId}/planning/split/${jobId}`),
+	cancelSplit: (scopeId: string, jobId: string) =>
+		request(`/scopes/${scopeId}/planning/split/${jobId}/cancel`, { method: 'POST' }),
 
 	getAiKeys: () => request<{ keys: AiKeyInfo[] }>('/ai/keys'),
 	saveAiKey: (provider: 'openrouter' | 'openai', key: string) =>

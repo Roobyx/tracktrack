@@ -6,6 +6,7 @@ import {
 	assessDialog,
 	assessFocusTaskId,
 	getActiveScope,
+	knowledgeSplitDialog,
 	reportError,
 	selectedTask,
 	selection,
@@ -287,6 +288,20 @@ export function PlanningView() {
 					html`<button class="btn btn-ghost btn-sm" onClick=${() => (selection.value = new Set())}>Clear</button>`
 				}
 				<div class="toolbar-spacer"></div>
+				<button
+					class="btn btn-sm"
+					title="Create tasks from a ts-rogue knowledge file"
+					onClick=${() => (knowledgeSplitDialog.value = 'create')}
+				>
+					📄 From file
+				</button>
+				<button
+					class="btn btn-sm"
+					title="Create tasks from a ts-rogue knowledge file, then assess them"
+					onClick=${() => (knowledgeSplitDialog.value = 'assess')}
+				>
+					📄 From file + assess
+				</button>
 				<button
 					class="btn btn-primary btn-sm"
 					onClick=${() => {

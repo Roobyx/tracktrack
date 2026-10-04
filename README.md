@@ -62,6 +62,38 @@ Candidates are probed once and the first reachable endpoint is used; the list is
 re-probed whenever the active endpoint stops answering. Every candidate must
 address the same bucket, otherwise data forks.
 
+## Planning: create tasks from a knowledge file
+
+The planning tab has two buttons that turn one `ts-rogue` knowledge document into
+real tasks:
+
+- **📄 From file** — the model reads the selected document and creates the tasks
+  it implies.
+- **📄 From file + assess** — the same, followed by a full planning assessment of
+  exactly the tasks that were created.
+
+The dialog lists the knowledge base, picks the target board (default: the board
+active in the GUI, otherwise the Inbox) and shows the provider/model used. The
+split runs on the server with the planning model (`TRACKTRACK_ASSESS_MODEL`, or a
+per-request override), never in the browser. Each generated task description
+starts with a `@[Name](knowledge://<id>)` reference back to the source document,
+which is the link format the `ts-rogue` config editor renders.
+
+Documents are read straight from S3 — the bucket the `ts-rogue` config editor
+writes to, under the `knowledge/` prefix. Configure it with
+`TRACKTRACK_KNOWLEDGE_S3_*` (each falls back to the `BUCKET_*` value), or leave
+it unset and the file picker reports that no knowledge base is configured. Long
+documents are split on markdown headings into several model calls, deduplicated
+by title; a run is a background job with progress, token usage and cancel, and
+the "+ assess" variant chains into an assessment job.
+
+| Method | Path | Purpose |
+| ------ | ---- | ------- |
+| `GET` | `/scopes/:scopeId/planning/knowledge` | List the `.md` / `.txt` knowledge documents |
+| `POST` | `/scopes/:scopeId/planning/split` | Start a split job (`docId`, `boardId`, `provider`, `model`, `assessAfter`) |
+| `GET` | `/scopes/:scopeId/planning/split/:jobId` | Split job progress and created task ids |
+| `POST` | `/scopes/:scopeId/planning/split/:jobId/cancel` | Cancel a running split job |
+
 ## Docker / Portainer
 
 ```bash

@@ -27,7 +27,7 @@ let endpointResolution: Promise<string> | null = null
  * optional vars as empty strings, so a blank override must not shadow a
  * populated fallback (e.g. TRACKTRACK_S3_ENDPOINT="" vs BUCKET_SERVER_ENDPOINT).
  */
-function firstEnv(...names: string[]): string | undefined {
+export function firstEnv(...names: string[]): string | undefined {
 	for (const name of names) {
 		const value = process.env[name]?.trim()
 		if (value) return value

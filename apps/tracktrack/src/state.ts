@@ -8,6 +8,7 @@ import {
 	type Project,
 	type SessionUser,
 	setToken,
+	type SplitJobStatus,
 	type View,
 } from './api/client'
 
@@ -67,6 +68,12 @@ export const serverUnreachable = signal(false)
 export const assessJob = signal<AssessJobStatus | null>(null)
 export const assessDialog = signal(false)
 export const assessFocusTaskId = signal<string | null>(null)
+export const splitJob = signal<SplitJobStatus | null>(null)
+/**
+ * Which action the "create tasks from file" dialog should run. `null` keeps the
+ * dialog closed; the two planning-toolbar buttons open it in one of the two modes.
+ */
+export const knowledgeSplitDialog = signal<'create' | 'assess' | null>(null)
 export const page = signal<'projects' | 'tasks' | 'settings'>('tasks')
 export const toasts = signal<Toast[]>([])
 
@@ -224,6 +231,7 @@ function clearScopedState(): void {
 	selectedTask.value = null
 	selection.value = new Set()
 	assessJob.value = null
+	splitJob.value = null
 	clearEtagCache()
 }
 

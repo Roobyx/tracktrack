@@ -104,6 +104,15 @@ import {
 	resolveProvider,
 	startAssessmentJob,
 } from './ai-assess'
+import {
+	KnowledgeSourceUnavailableError,
+	SplitJobConflictError,
+	getSplitJob,
+	listSplittableKnowledgeDocs,
+	requestSplitJobCancel,
+	splitJobToSummary,
+	startSplitJob,
+} from './ai-split'
 import { type AuthState, handleJsonRpc } from './mcp-handler.js'
 
 export const BOOTSTRAP_ADMIN_NAME = 'admin'
@@ -877,7 +886,7 @@ async function handleScopes(
 	}
 
 	if (subResource === 'planning') {
-		await handlePlanning(request, response, segments.slice(2), scopeId)
+		await handlePlanning(request, response, segments.slice(2), scopeId, session)
 		return
 	}
 
@@ -1046,12 +1055,150 @@ async function handleTasks(
 	respondJson(response, 405, { errors: ['Method not allowed'] })
 }
 
+/**
+ * Knowledge documents offered for task splitting. Only text kinds are returned:
+ * images and .doc files cannot be read as a markdown source by the model.
+ */
+async function handlePlanningKnowledge(
+	request: IncomingMessage,
+	response: ServerResponse,
+): Promise<void> {
+	if (request.method !== 'GET') {
+		respondJson(response, 405, { errors: ['Method not allowed'] })
+		return
+	}
+	try {
+		respondJson(response, 200, { documents: await listSplittableKnowledgeDocs() })
+	} catch (error) {
+		if (error instanceof KnowledgeSourceUnavailableError) {
+			respondJson(response, 503, { errors: [error.message] })
+			return
+		}
+		throw error
+	}
+}
+
+/**
+ * Splits one ts-rogue knowledge document into tasks. Provider, model and API key
+ * resolve exactly like an assessment, so the split uses the same planning model;
+ * `assessAfter` chains an assessment over the tasks this run created.
+ */
+async function handlePlanningSplit(
+	request: IncomingMessage,
+	response: ServerResponse,
+	segments: string[],
+	scopeId: string,
+	session: { userId: string },
+): Promise<void> {
+	if (segments.length === 0) {
+		if (request.method !== 'POST') {
+			respondJson(response, 405, { errors: ['Method not allowed'] })
+			return
+		}
+		const body = await readJsonBody(request)
+		const docId = typeof body.docId === 'string' ? body.docId.trim() : ''
+		if (!docId) {
+			respondJson(response, 400, { errors: ['docId is required'] })
+			return
+		}
+		const provider = resolveProvider(body.provider ?? 'openrouter')
+		if (!provider) {
+			respondJson(response, 400, { errors: ['provider must be "openrouter" or "openai"'] })
+			return
+		}
+		const apiKey = resolveAssessmentApiKey(
+			provider,
+			typeof body.apiKey === 'string' ? body.apiKey : undefined,
+		)
+		if (!apiKey) {
+			respondJson(response, 400, {
+				errors: [
+					`No API key available: pass apiKey in the request or set ${
+						provider === 'openrouter' ? 'OPENROUTER_API_KEY' : 'OPENAI_API_KEY'
+					} in the root .env`,
+				],
+			})
+			return
+		}
+		const model = resolveAssessmentModel(
+			provider,
+			typeof body.model === 'string' ? body.model : undefined,
+		)
+		const boardId =
+			typeof body.boardId === 'string' && body.boardId.trim() ? body.boardId.trim() : null
+		if (boardId && !(await findBoardById(scopeId, boardId))) {
+			respondJson(response, 400, { errors: ['Unknown boardId'] })
+			return
+		}
+		try {
+			const { job } = startSplitJob({
+				scopeId,
+				docId,
+				boardId,
+				authorId: session.userId,
+				provider,
+				model,
+				apiKey,
+				assessAfter: body.assessAfter === true,
+			})
+			respondJson(response, 200, { jobId: job.id })
+		} catch (error) {
+			if (error instanceof SplitJobConflictError) {
+				respondJson(response, 409, { errors: [error.message] })
+				return
+			}
+			throw error
+		}
+		return
+	}
+
+	const jobId = segments[0]
+
+	if (segments.length === 1 && request.method === 'GET') {
+		const job = getSplitJob(scopeId, jobId)
+		if (!job) {
+			respondJson(response, 404, {
+				errors: ['Split job not found (it may have been lost by a server restart)'],
+			})
+			return
+		}
+		respondJson(response, 200, splitJobToSummary(job))
+		return
+	}
+
+	if (segments.length === 2 && segments[1] === 'cancel' && request.method === 'POST') {
+		const cancelled = await requestSplitJobCancel(scopeId, jobId)
+		if (!cancelled) {
+			const job = getSplitJob(scopeId, jobId)
+			respondJson(response, job ? 409 : 404, {
+				errors: [job ? 'Job is not running' : 'Split job not found'],
+			})
+			return
+		}
+		respondJson(response, 200, { ok: true })
+		return
+	}
+
+	respondJson(response, 405, { errors: ['Method not allowed'] })
+}
+
 async function handlePlanning(
 	request: IncomingMessage,
 	response: ServerResponse,
 	segments: string[],
 	scopeId: string,
+	session: { userId: string },
 ): Promise<void> {
+	if (segments[0] === 'knowledge') {
+		await handlePlanningKnowledge(request, response)
+		return
+	}
+
+	if (segments[0] === 'split') {
+		await handlePlanningSplit(request, response, segments.slice(1), scopeId, session)
+		return
+	}
+
 	if (segments[0] !== 'assess') {
 		respondJson(response, 404, { errors: ['Not found'] })
 		return

@@ -33,6 +33,26 @@ export {
 	syncToS3,
 } from './init.ts'
 export { LocalDiskStorageAdapter } from './local-disk.ts'
+export type {
+	KnowledgeDoc,
+	KnowledgeDocRef,
+	KnowledgeDocType,
+	KnowledgeEnv,
+} from './knowledge-s3.ts'
+export {
+	classifyKnowledgeFile,
+	isKnowledgeConfigured,
+	isKnowledgeTextFile,
+	isValidKnowledgeId,
+	knowledgeFileExtension,
+	KnowledgeDocNotFoundError,
+	KNOWLEDGE_LIST_KEY_BUDGET,
+	KnowledgeNotConfiguredError,
+	listKnowledgeDocs,
+	prettifyKnowledgeSlug,
+	readKnowledgeDoc,
+	resetKnowledgeS3Client,
+} from './knowledge-s3.ts'
 export { withKeyLock, withKeyLocks } from './lock.ts'
 export type { ImportOptions, ImportResult, StorageExport } from './migrate.ts'
 export {
