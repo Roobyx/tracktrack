@@ -1,6 +1,6 @@
 import { html } from 'htm/preact'
 import { useEffect, useRef, useState } from 'preact/hooks'
-import { api, clearEtagCache } from '../api/client'
+import { api } from '../api/client'
 import {
 	activeBoardId,
 	activeProjectId,
@@ -11,6 +11,7 @@ import {
 	boards,
 	error,
 	filters,
+	getActiveProject,
 	getActiveScope,
 	isAdmin,
 	isFilterActive,
@@ -35,9 +36,9 @@ import { AssessJobPanel } from './AssessJobPanel'
 import { BoardView } from './BoardView'
 import { KnowledgeSplitDialog } from './KnowledgeSplitDialog'
 import { ListView } from './ListView'
+import { NewScopeForm } from './NewScope'
 import { OverviewView } from './OverviewView'
 import { PlanningView } from './PlanningView'
-import { slugify } from './ProjectsPage'
 import { SplitJobPanel } from './SplitJobPanel'
 import { TaskDrawer } from './TaskDrawer'
 import { Toolbar } from './Toolbar'
@@ -47,9 +48,6 @@ export function TasksPage() {
 	const scopesLoaded = useRef(false)
 	const [scopesReady, setScopesReady] = useState(false)
 	const [showScopeForm, setShowScopeForm] = useState(false)
-	const [scopeName, setScopeName] = useState('')
-	const [scopePrefix, setScopePrefix] = useState('')
-	const [scopeBusy, setScopeBusy] = useState(false)
 
 	if (!scopesLoaded.current) {
 		scopesLoaded.current = true
@@ -75,36 +73,6 @@ export function TasksPage() {
 			reportError('Failed to load scopes', err)
 		} finally {
 			setScopesReady(true)
-		}
-	}
-
-	async function handleCreateScope(e: Event) {
-		e.preventDefault()
-		const name = scopeName.trim()
-		const prefix = scopePrefix.trim().toUpperCase()
-		if (!name || prefix.length < 2) return
-		setScopeBusy(true)
-		try {
-			const scope = await api.createScope(activeProjectId.value, {
-				id: slugify(name),
-				name,
-				prefix,
-			})
-			clearEtagCache()
-			scopes.value = await api.getScopes(
-				activeProjectId.value,
-				`scopes:proj:${activeProjectId.value}`,
-			)
-			activeScopeId.value = scope.id
-			savePref('scope', scope.id)
-			setShowScopeForm(false)
-			setScopeName('')
-			setScopePrefix('')
-			toast('good', `Scope "${scope.name}" created`)
-		} catch (err) {
-			reportError('Failed to create scope', err)
-		} finally {
-			setScopeBusy(false)
 		}
 	}
 
@@ -268,6 +236,46 @@ export function TasksPage() {
 			? selectedTask.value
 			: null
 
+	// Nothing to filter, board or plan without a scope: offer the first one instead.
+	if (scopesReady && scopes.value.length === 0) {
+		return html`
+			<div class="tasks-page">
+				${
+					serverUnreachable.value &&
+					html`<div class="banner banner-error banner-full">
+					TrackTrack server is unreachable. Start it with <code>pnpm tracktrack</code>.
+				</div>`
+				}
+				${error.value && html`<div class="banner banner-error banner-full">${error.value}</div>`}
+				<div class="empty-state scopes-empty-state">
+					<div class="empty-icon" aria-hidden="true">
+						<svg viewBox="0 0 24 24" width="30" height="30">
+							<path d="M4 6.5A2.5 2.5 0 0 1 6.5 4H18a2 2 0 0 1 2 2v11.5a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 17.5z" fill="none" stroke="currentColor" stroke-width="1.6" />
+							<path d="M4 9.5h16M12 9.5V20" fill="none" stroke="currentColor" stroke-width="1.6" />
+						</svg>
+					</div>
+					<h2>No scopes in ${getActiveProject()?.name ?? 'this project'} yet</h2>
+					<p>
+						Every task, board and view lives in a scope. Create the first one to start
+						tracking work.
+					</p>
+					${
+						isAdmin.value
+							? showScopeForm
+								? html`<${NewScopeForm} onDone=${() => setShowScopeForm(false)} onCancel=${() => setShowScopeForm(false)} />`
+								: html`<button class="btn btn-primary" onClick=${() => setShowScopeForm(true)}>
+										+ Create first scope
+									</button>`
+							: html`<p class="muted">Ask an admin to create a scope.</p>`
+					}
+					<p class="scopes-hint">
+						Later: use + New scope in Settings › Project or in the scope dropdown.
+					</p>
+				</div>
+			</div>
+		`
+	}
+
 	return html`
 		<div class="tasks-page">
 			<${Toolbar}
@@ -284,34 +292,6 @@ export function TasksPage() {
 			</div>`
 			}
 			${error.value && html`<div class="banner banner-error banner-full">${error.value}</div>`}
-
-			${
-				scopesReady &&
-				scopes.value.length === 0 &&
-				html`
-				<div class="banner banner-full project-scopes-empty">
-					<span>This project has no scopes yet.</span>
-					${
-						isAdmin.value
-							? html`
-							${
-								showScopeForm
-									? html`
-									<form class="project-scope-form" onSubmit=${(e: Event) => void handleCreateScope(e)}>
-										<input class="input" type="text" placeholder="Scope name" value=${scopeName} onInput=${(e: Event) => setScopeName((e.target as HTMLInputElement).value)} autoFocus />
-										<input class="input input-sm" type="text" placeholder="Prefix (VO)" maxLength=${5} value=${scopePrefix} onInput=${(e: Event) => setScopePrefix((e.target as HTMLInputElement).value)} />
-										<button class="btn btn-primary btn-sm" type="submit" disabled=${scopeBusy || !scopeName.trim() || scopePrefix.trim().length < 2}>Add</button>
-										<button class="btn btn-ghost btn-sm" type="button" onClick=${() => setShowScopeForm(false)}>Cancel</button>
-									</form>
-								`
-									: html`<button class="btn btn-primary btn-sm" onClick=${() => setShowScopeForm(true)}>+ New scope</button>`
-							}
-						`
-							: html`<span class="muted">Ask an admin to create one.</span>`
-					}
-				</div>
-			`
-			}
 
 			${assessJob.value && html`<${AssessJobPanel} onRefresh=${loadTasks} />`}
 		${splitJob.value && html`<${SplitJobPanel} onRefresh=${loadTasks} />`}

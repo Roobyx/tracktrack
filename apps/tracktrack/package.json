@@ -1,6 +1,6 @@
 {
 	"name": "tracktrack",
-	"version": "0.17.7",
+	"version": "0.18.0",
 	"private": true,
 	"description": "Headless task tracking service with optional web GUI",
 	"type": "module",

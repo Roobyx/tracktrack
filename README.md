@@ -94,6 +94,35 @@ the "+ assess" variant chains into an assessment job.
 | `GET` | `/scopes/:scopeId/planning/split/:jobId` | Split job progress and created task ids |
 | `POST` | `/scopes/:scopeId/planning/split/:jobId/cancel` | Cancel a running split job |
 
+## Translation
+
+Tasks can be shown in another language. Pick the target language in
+**Settings → Translation** (Bulgarian by default, plus a list of common ones or
+any custom string), then either press **🌐** on a single task in its drawer or
+run **Translate the project** from the same settings tab to translate every task
+in the active project.
+
+Translations are **never written back to the task**. The original text stays
+canonical, and the result is cached in the browser's local storage under
+`tracktrack:translate:<language>`, so a task is translated once per language. A
+cached entry is dropped automatically when the task is edited (its `updatedAt`
+moves), when the prompt version changes, or when **Clear cache** is pressed. The
+cache is capped below the local storage quota and evicts the oldest entries
+first, so a large project run cannot silently fail on a full origin.
+
+A project run is a background job with progress, token usage and cancel, matching
+the split and assessment jobs. Like them it runs on the server with the planning
+model (`TRACKTRACK_ASSESS_MODEL`, or a per-request `model`), never in the
+browser — no provider key ever reaches the client.
+
+| Method | Path | Purpose |
+| ------ | ---- | ------- |
+| `POST` | `/translate/task` | Translate one task (`scopeId`, `taskId`, `language`, `provider`, `model`) |
+| `POST` | `/translate/project` | Start a project-wide job (`projectId`, `language`, `provider`, `model`, `concurrency`) |
+| `GET` | `/translate/job/:jobId` | Job progress, failure count and token totals |
+| `GET` | `/translate/job/:jobId/results` | Page of finished translations (`offset`, `limit`) for the browser cache |
+| `POST` | `/translate/job/:jobId/cancel` | Cancel a running job |
+
 ## Docker / Portainer
 
 ```bash

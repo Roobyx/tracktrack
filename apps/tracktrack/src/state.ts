@@ -7,8 +7,9 @@ import {
 	getToken,
 	type Project,
 	type SessionUser,
-	setToken,
 	type SplitJobStatus,
+	setToken,
+	type TranslateJobStatus,
 	type View,
 } from './api/client'
 
@@ -33,6 +34,9 @@ export type Toast = {
 export type Theme = 'dark' | 'light'
 export type Accent = 'violet' | 'blue' | 'teal' | 'pink' | 'orange'
 export type Density = 'comfortable' | 'compact'
+
+/** Translation target used until the user picks another one in settings. */
+export const DEFAULT_TRANSLATE_LANGUAGE = 'bg'
 
 export const currentUser = signal<SessionUser | null>(null)
 export const isAuthenticated = computed(() => currentUser.value !== null)
@@ -69,6 +73,8 @@ export const assessJob = signal<AssessJobStatus | null>(null)
 export const assessDialog = signal(false)
 export const assessFocusTaskId = signal<string | null>(null)
 export const splitJob = signal<SplitJobStatus | null>(null)
+/** In-flight project-wide translation run started from settings. */
+export const translateJob = signal<TranslateJobStatus | null>(null)
 /**
  * Which action the "create tasks from file" dialog should run. `null` keeps the
  * dialog closed; the two planning-toolbar buttons open it in one of the two modes.
@@ -80,6 +86,8 @@ export const toasts = signal<Toast[]>([])
 export const theme = signal<Theme>('dark')
 export const accent = signal<Accent>('violet')
 export const density = signal<Density>('comfortable')
+/** Target language for task translation. Empty disables translation. */
+export const translateLanguage = signal<string>(DEFAULT_TRANSLATE_LANGUAGE)
 
 const STORE_PREFIX = 'tracktrack:'
 
@@ -107,6 +115,7 @@ export function restorePrefs(): void {
 	viewMode.value = loadPref<ViewMode>('viewMode', 'list')
 	activeScopeId.value = loadPref<string>('scope', '')
 	activeProjectId.value = loadPref<string>('project', '')
+	translateLanguage.value = loadPref<string>('translateLanguage', DEFAULT_TRANSLATE_LANGUAGE)
 	applyPrefsToDocument()
 }
 
@@ -138,6 +147,12 @@ export function setDensity(value: Density): void {
 export function setViewMode(value: ViewMode): void {
 	viewMode.value = value
 	savePref('viewMode', value)
+}
+
+export function setTranslateLanguage(value: string): void {
+	const trimmed = value.trim()
+	translateLanguage.value = trimmed
+	savePref('translateLanguage', trimmed)
 }
 
 export function restoreSession(): void {
@@ -232,6 +247,7 @@ function clearScopedState(): void {
 	selection.value = new Set()
 	assessJob.value = null
 	splitJob.value = null
+	translateJob.value = null
 	clearEtagCache()
 }
 

@@ -9,10 +9,13 @@ import {
 	persistSession,
 	restorePrefs,
 	restoreSession,
+	translateLanguage,
 } from './state'
+import { loadTranslations } from './translate-cache'
 
 restoreSession()
 restorePrefs()
+loadTranslations(translateLanguage.value)
 
 const restoredToken = getToken()
 

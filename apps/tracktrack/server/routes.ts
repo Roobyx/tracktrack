@@ -50,6 +50,7 @@ import {
 import {
 	batchUpdateTasks,
 	createTaskWithNumber,
+	findTaskById,
 	getTasks,
 	getTasksWithEtag,
 	hasActiveFilter,
@@ -105,14 +106,24 @@ import {
 	startAssessmentJob,
 } from './ai-assess'
 import {
-	KnowledgeSourceUnavailableError,
-	SplitJobConflictError,
 	getSplitJob,
+	KnowledgeSourceUnavailableError,
 	listSplittableKnowledgeDocs,
 	requestSplitJobCancel,
+	SplitJobConflictError,
 	splitJobToSummary,
 	startSplitJob,
 } from './ai-split'
+import {
+	getTranslateJobById,
+	getTranslateJobResults,
+	requestTranslateJobCancel,
+	resolveTranslateLanguage,
+	startTranslateJob,
+	TranslateJobConflictError,
+	translateJobToSummary,
+	translateSingleTask,
+} from './ai-translate'
 import { type AuthState, handleJsonRpc } from './mcp-handler.js'
 
 export const BOOTSTRAP_ADMIN_NAME = 'admin'
@@ -363,6 +374,9 @@ async function dispatchApiRequest(
 			break
 		case 'ai':
 			await handleAiSettings(request, response, segments.slice(3))
+			break
+		case 'translate':
+			await handleTranslate(request, response, segments.slice(3))
 			break
 		case 'mcp':
 			await handleMcp(request, response)
@@ -1317,6 +1331,209 @@ async function handlePlanning(
 	}
 
 	respondJson(response, 405, { errors: ['Method not allowed'] })
+}
+
+/**
+ * Task translation surface. Like the planning routes it is available to any
+ * authenticated session, resolves the model exactly like an assessment (request
+ * override, then TRACKTRACK_ASSESS_MODEL, then the provider default) and never
+ * writes to a task: the browser caches the result in its own local storage.
+ */
+async function handleTranslate(
+	request: IncomingMessage,
+	response: ServerResponse,
+	segments: string[],
+): Promise<void> {
+	const token = extractAuthToken(request)
+	if (!token) {
+		respondJson(response, 401, { errors: ['Missing authorization token'] })
+		return
+	}
+	const session = await findSessionByToken(token)
+	if (!session) {
+		respondJson(response, 401, { errors: ['Invalid or expired session'] })
+		return
+	}
+
+	if (segments[0] === 'task' && request.method === 'POST') {
+		const body = await readJsonBody(request)
+		const language = resolveTranslateLanguage(body.language)
+		if (!language) {
+			respondJson(response, 400, { errors: ['language must be a non-empty short string'] })
+			return
+		}
+		if (typeof body.scopeId !== 'string' || !body.scopeId) {
+			respondJson(response, 400, { errors: ['scopeId is required'] })
+			return
+		}
+		if (typeof body.taskId !== 'string' || !body.taskId) {
+			respondJson(response, 400, { errors: ['taskId is required'] })
+			return
+		}
+		const provider = resolveProvider(body.provider ?? 'openrouter')
+		if (!provider) {
+			respondJson(response, 400, { errors: ['provider must be "openrouter" or "openai"'] })
+			return
+		}
+		const apiKey = resolveAssessmentApiKey(
+			provider,
+			typeof body.apiKey === 'string' ? body.apiKey : undefined,
+		)
+		if (!apiKey) {
+			respondJson(response, 400, {
+				errors: [
+					`No API key available: pass apiKey in the request or set ${
+						provider === 'openrouter' ? 'OPENROUTER_API_KEY' : 'OPENAI_API_KEY'
+					} in the root .env`,
+				],
+			})
+			return
+		}
+		const task = await findTaskById(body.scopeId, body.taskId)
+		if (!task) {
+			respondJson(response, 404, { errors: ['Task not found'] })
+			return
+		}
+		const result = await translateSingleTask({
+			task,
+			language,
+			provider,
+			model: resolveAssessmentModel(
+				provider,
+				typeof body.model === 'string' ? body.model : undefined,
+			),
+			apiKey,
+		})
+		if (!result.ok) {
+			respondJson(response, 502, { errors: [result.error] })
+			return
+		}
+		respondJson(response, 200, { translation: result.translation })
+		return
+	}
+
+	if (segments[0] === 'project' && request.method === 'POST') {
+		const body = await readJsonBody(request)
+		const language = resolveTranslateLanguage(body.language)
+		if (!language) {
+			respondJson(response, 400, { errors: ['language must be a non-empty short string'] })
+			return
+		}
+		if (typeof body.projectId !== 'string' || !body.projectId) {
+			respondJson(response, 400, { errors: ['projectId is required'] })
+			return
+		}
+		if (!SCOPE_ID_PATTERN.test(body.projectId)) {
+			respondJson(response, 400, { errors: ['Invalid project id'] })
+			return
+		}
+		const project = await findProjectById(body.projectId)
+		if (!project) {
+			respondJson(response, 404, { errors: ['Project not found'] })
+			return
+		}
+		if (
+			body.concurrency !== undefined &&
+			(typeof body.concurrency !== 'number' ||
+				!Number.isInteger(body.concurrency) ||
+				body.concurrency < 1 ||
+				body.concurrency > 8)
+		) {
+			respondJson(response, 400, {
+				errors: ['concurrency must be an integer between 1 and 8'],
+			})
+			return
+		}
+		const provider = resolveProvider(body.provider ?? 'openrouter')
+		if (!provider) {
+			respondJson(response, 400, { errors: ['provider must be "openrouter" or "openai"'] })
+			return
+		}
+		const apiKey = resolveAssessmentApiKey(
+			provider,
+			typeof body.apiKey === 'string' ? body.apiKey : undefined,
+		)
+		if (!apiKey) {
+			respondJson(response, 400, {
+				errors: [
+					`No API key available: pass apiKey in the request or set ${
+						provider === 'openrouter' ? 'OPENROUTER_API_KEY' : 'OPENAI_API_KEY'
+					} in the root .env`,
+				],
+			})
+			return
+		}
+		try {
+			const { job } = startTranslateJob({
+				projectId: body.projectId,
+				language,
+				provider,
+				model: resolveAssessmentModel(
+					provider,
+					typeof body.model === 'string' ? body.model : undefined,
+				),
+				apiKey,
+				concurrency: typeof body.concurrency === 'number' ? body.concurrency : undefined,
+			})
+			respondJson(response, 200, { jobId: job.id })
+		} catch (error) {
+			if (error instanceof TranslateJobConflictError) {
+				respondJson(response, 409, { errors: [error.message] })
+				return
+			}
+			throw error
+		}
+		return
+	}
+
+	if (segments[0] === 'job' && segments.length >= 2 && request.method === 'GET') {
+		const job = getTranslateJobById(segments[1])
+		if (!job) {
+			respondJson(response, 404, {
+				errors: ['Translation job not found (it may have been lost by a server restart)'],
+			})
+			return
+		}
+		if (segments.length === 2) {
+			respondJson(response, 200, translateJobToSummary(job))
+			return
+		}
+		if (segments[2] === 'results') {
+			const url = new URL(request.url ?? '/', 'http://localhost')
+			const offset = Number.parseInt(url.searchParams.get('offset') ?? '0', 10)
+			const limit = Number.parseInt(url.searchParams.get('limit') ?? '50', 10)
+			const page = getTranslateJobResults(
+				job.id,
+				Number.isFinite(offset) ? offset : 0,
+				Number.isFinite(limit) ? limit : 50,
+			)
+			respondJson(response, 200, page)
+			return
+		}
+		respondJson(response, 404, { errors: ['Not found'] })
+		return
+	}
+
+	if (
+		segments[0] === 'job' &&
+		segments.length === 3 &&
+		segments[2] === 'cancel' &&
+		request.method === 'POST'
+	) {
+		const job = getTranslateJobById(segments[1])
+		if (!job) {
+			respondJson(response, 404, { errors: ['Translation job not found'] })
+			return
+		}
+		if (!requestTranslateJobCancel(job.projectId, job.id)) {
+			respondJson(response, 409, { errors: ['Job is not running'] })
+			return
+		}
+		respondJson(response, 200, { ok: true })
+		return
+	}
+
+	respondJson(response, 404, { errors: ['Not found'] })
 }
 
 async function handleViews(

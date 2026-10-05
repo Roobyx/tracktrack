@@ -3074,26 +3074,70 @@ kbd {
 	margin: 0;
 }
 
-.project-scopes-empty {
-	display: flex;
-	align-items: center;
+.scopes-empty-state {
+	flex: 1;
+	justify-content: center;
 	gap: 12px;
-	flex-wrap: wrap;
+	text-align: center;
 }
 
-.project-scope-form {
+.scopes-empty-state h2 {
+	margin: 0;
+	font-size: 18px;
+	color: var(--text);
+}
+
+.scopes-empty-state p {
+	margin: 0;
+	font-size: 13px;
+	max-width: 400px;
+	line-height: 1.5;
+}
+
+.scopes-empty-state .btn {
+	margin-top: 4px;
+}
+
+.scopes-empty-state .scope-new-form {
+	width: min(440px, 100%);
+	justify-content: center;
+}
+
+.scope-new-form {
 	display: flex;
-	align-items: center;
-	gap: 8px;
+	align-items: flex-end;
+	gap: 10px;
 	flex-wrap: wrap;
+	margin-top: 10px;
+	padding: 12px;
+	border: 1px solid var(--border);
+	border-radius: var(--radius);
+	background: var(--panel-2);
 }
 
-.project-scope-form input[type="text"] {
-	width: 180px;
+.scope-new-form .field {
+	flex: 1 1 180px;
+	min-width: 0;
 }
 
-.project-scope-form input.input-sm {
-	width: 90px;
+.scope-new-form .scope-new-prefix {
+	flex: 0 0 110px;
+}
+
+.scope-new-form .scope-new-prefix .input {
+	text-transform: uppercase;
+}
+
+.scope-new-actions {
+	display: flex;
+	gap: 8px;
+}
+
+.dialog-body .scope-new-form {
+	margin-top: 0;
+	padding: 0;
+	border: 0;
+	background: none;
 }
 
 .project-avatar {
@@ -3111,6 +3155,17 @@ kbd {
 	color: var(--text-dim);
 	text-transform: uppercase;
 	letter-spacing: 0.04em;
+}
+
+.scopes-manage-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 10px;
+}
+
+.scopes-manage-head h4 {
+	margin: 0;
 }
 
 .scopes-table td:last-child {
@@ -3160,4 +3215,44 @@ kbd {
 	margin: 8px 0 0;
 	font-size: 12px;
 	color: var(--text-dim);
+}
+
+/* --- Task translation ------------------------------------------------------ */
+
+.translated-toggle {
+	background: none;
+	border: 0;
+	padding: 0;
+	margin-left: 6px;
+	font: inherit;
+	font-size: 11px;
+	color: var(--text-dim);
+	text-decoration: underline;
+	cursor: pointer;
+	white-space: nowrap;
+}
+
+.translated-toggle:hover {
+	color: var(--accent);
+}
+
+.btn.translated {
+	border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+	color: var(--accent);
+}
+
+.translated-body > :first-child {
+	margin-top: 0;
+}
+
+.translated-body > :last-child {
+	margin-bottom: 0;
+}
+
+.list-title .inner,
+.board-card-title .inner,
+.planning-title .inner,
+.detail-title .inner {
+	overflow: hidden;
+	text-overflow: ellipsis;
 }

@@ -1,10 +1,12 @@
 import { html } from 'htm/preact'
 import { useEffect, useState } from 'preact/hooks'
 import { LoginScreen } from './components/LoginScreen'
+import { NewScopeDialog } from './components/NewScope'
 import { ProjectsPage } from './components/ProjectsPage'
 import { SettingsPage } from './components/SettingsPage'
 import { TasksPage } from './components/TasksPage'
 import {
+	activeProjectId,
 	activeScopeId,
 	currentUser,
 	exitToProjects,
@@ -27,8 +29,12 @@ const VIEW_TABS: Array<{ mode: ViewMode; label: string }> = [
 	{ mode: 'overview', label: 'Overview' },
 ]
 
+/** Sentinel option value in the scope dropdown that opens the create dialog. */
+const NEW_SCOPE_OPTION = '__new__'
+
 export function App() {
 	const [showShortcuts, setShowShortcuts] = useState(false)
+	const [showNewScope, setShowNewScope] = useState(false)
 
 	useEffect(() => {
 		function onKey(e: KeyboardEvent) {
@@ -82,11 +88,29 @@ export function App() {
 					aria-label="Active scope"
 					value=${activeScopeId.value}
 					onInput=${(e: Event) => {
-						activeScopeId.value = (e.target as HTMLSelectElement).value
+						const el = e.target as HTMLSelectElement
+						if (el.value === NEW_SCOPE_OPTION) {
+							el.value = activeScopeId.value
+							if (isAdmin.value) setShowNewScope(true)
+							return
+						}
+						activeScopeId.value = el.value
 						window.dispatchEvent(new CustomEvent('tt:scope-changed'))
 					}}
 				>
-					${scopes.value.map((s) => html`<option value=${s.id} key=${s.id}>${s.name}</option>`)}
+					${
+						scopes.value.length === 0
+							? html`<option value="" disabled>No scopes</option>`
+							: scopes.value.map(
+									(s) =>
+										html`<option value=${s.id} key=${s.id}>${s.name}</option>`,
+								)
+					}
+					${
+						isAdmin.value && activeProjectId.value
+							? html`<option value=${NEW_SCOPE_OPTION}>+ New scope</option>`
+							: null
+					}
 				</select>
 
 				<button
@@ -161,6 +185,8 @@ export function App() {
 							: html`<${TasksPage} />`
 				}
 			</main>
+
+			${showNewScope && html`<${NewScopeDialog} onClose=${() => setShowNewScope(false)} />`}
 
 			${
 				showShortcuts &&

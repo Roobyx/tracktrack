@@ -20,10 +20,23 @@ import {
 	setAccent,
 	setDensity,
 	setTheme,
+	setTranslateLanguage,
 	type Theme,
 	theme,
 	toast,
+	translateJob,
+	translateLanguage,
 } from '../state'
+import {
+	clearTranslations,
+	loadTranslations,
+	TRANSLATE_LANGUAGES,
+	translatedTaskCount,
+	translationCacheBytes,
+	translationProvider,
+} from '../translate-cache'
+import { NewScopeForm } from './NewScope'
+import { TranslateJobPanel } from './TranslateJobPanel'
 
 const ACCENTS: Array<{ id: Accent; label: string; color: string }> = [
 	{ id: 'violet', label: 'Violet', color: '#8b5cf6' },
@@ -35,9 +48,7 @@ const ACCENTS: Array<{ id: Accent; label: string; color: string }> = [
 
 export function SettingsPage() {
 	const admin = currentUser.value?.role === 'admin'
-	const [tab, setTab] = useState<'appearance' | 'ai' | 'users'>(
-		admin ? 'appearance' : 'appearance',
-	)
+	const [tab, setTab] = useState<'appearance' | 'translate' | 'ai' | 'users'>('appearance')
 
 	return html`
 		<div class="settings-page">
@@ -46,6 +57,9 @@ export function SettingsPage() {
 				<div class="segmented">
 					<button class=${tab === 'appearance' ? 'active' : ''} onClick=${() => setTab('appearance')}>
 						Appearance
+					</button>
+					<button class=${tab === 'translate' ? 'active' : ''} onClick=${() => setTab('translate')}>
+						Translation
 					</button>
 					${
 						admin &&
@@ -56,6 +70,7 @@ export function SettingsPage() {
 			</div>
 			<div class="settings-content">
 				${tab === 'appearance' && html`<${AppearanceSection} />`}
+				${tab === 'translate' && html`<${TranslateSection} />`}
 				${tab === 'ai' && admin && html`<${AiSection} />`}
 				${tab === 'users' && admin && html`<${UsersSection} />`}
 			</div>
@@ -67,6 +82,7 @@ function AppearanceSection() {
 	const [moveError, setMoveError] = useState('')
 	const [renamingId, setRenamingId] = useState('')
 	const [renameDraft, setRenameDraft] = useState('')
+	const [showNewScope, setShowNewScope] = useState(false)
 	const [busy, setBusy] = useState(false)
 
 	async function renameScope(scopeId: string) {
@@ -197,15 +213,31 @@ function AppearanceSection() {
 				${
 					isAdmin.value &&
 					html`
-					<div class="scopes-manage">
+				<div class="scopes-manage">
+					<div class="scopes-manage-head">
 						<h4>Scopes in this project</h4>
-						${moveError && html`<div class="banner banner-error">${moveError}</div>`}
 						${
-							scopes.value.length === 0
-								? html`<p class="scopes-empty muted">No scopes yet.</p>`
-								: html`
-								<table class="settings-table scopes-table">
-									<tbody>
+							showNewScope
+								? html`<button class="btn btn-ghost btn-sm" onClick=${() => setShowNewScope(false)}>
+									Cancel
+								</button>`
+								: html`<button class="btn btn-primary btn-sm" onClick=${() => setShowNewScope(true)}>
+									+ New scope
+								</button>`
+						}
+					</div>
+					${moveError && html`<div class="banner banner-error">${moveError}</div>`}
+					${
+						showNewScope
+							? html`<${NewScopeForm} navigateOnCreate=${false} onDone=${() => setShowNewScope(false)} />`
+							: ''
+					}
+					${
+						scopes.value.length === 0
+							? html`<p class="scopes-empty muted">No scopes yet. Use “+ New scope” to add one.</p>`
+							: html`
+							<table class="settings-table scopes-table">
+								<tbody>
 										${scopes.value.map(
 											(s) => html`
 											<tr key=${s.id}>
@@ -293,7 +325,7 @@ function AppearanceSection() {
 									</tbody>
 								</table>
 							`
-						}
+					}
 						<p class="scopes-hint">Moving a scope takes its tasks, boards and views to the target project. Deleting is only allowed for empty scopes.</p>
 					</div>
 				`
@@ -317,11 +349,150 @@ function AppearanceSection() {
 								// session might already be gone
 							}
 							clearSession()
+							clearTranslations()
 						}}
 					>
 						Logout
 					</button>
 				</div>
+			</section>
+		</div>
+	`
+}
+
+/**
+ * Per-user translation settings. Translations are never written back to a task:
+ * they live in this browser's local storage, keyed by language, and are dropped
+ * when the task text changes.
+ */
+function TranslateSection() {
+	const language = translateLanguage.value
+	const project = getActiveProject()
+	const [custom, setCustom] = useState('')
+	const [busy, setBusy] = useState(false)
+	const [, forceRender] = useState(0)
+
+	useEffect(() => {
+		loadTranslations(language)
+		forceRender((n) => n + 1)
+	}, [language])
+
+	function applyLanguage(value: string) {
+		setTranslateLanguage(value)
+		setCustom('')
+		loadTranslations(value.trim())
+		forceRender((n) => n + 1)
+	}
+
+	async function translateProject() {
+		if (!project) return
+		setBusy(true)
+		try {
+			const { jobId } = await api.startProjectTranslate(project.id, language, {
+				provider: translationProvider(),
+			})
+			translateJob.value = {
+				jobId,
+				projectId: project.id,
+				status: 'running',
+				language,
+				model: '',
+				total: 0,
+				completed: 0,
+				failed: 0,
+				usageTotals: { promptTokens: 0, completionTokens: 0 },
+			}
+			toast('info', `Translating "${project.name}" to ${language}…`)
+		} catch (err) {
+			reportError('Failed to start project translation', err)
+		} finally {
+			setBusy(false)
+		}
+	}
+
+	const cachedCount = translatedTaskCount()
+	const cachedBytes = translationCacheBytes()
+	const knownLanguage = TRANSLATE_LANGUAGES.some((l) => l.id === language)
+
+	return html`
+		<div class="settings-sections">
+			<section class="settings-section">
+				<h3>Translation language</h3>
+				<p class="settings-hint">
+					Task text is translated on demand with the active model (${translationProvider()}). Translations
+					are kept only in this browser and are dropped when a task is edited. Stored locally.
+				</p>
+				<div class="segmented" style=${{ flexWrap: 'wrap' }}>
+					${TRANSLATE_LANGUAGES.map(
+						(item) => html`
+							<button
+								key=${item.id}
+								class=${language === item.id ? 'active' : ''}
+								title=${item.label}
+								onClick=${() => applyLanguage(item.id)}
+							>
+								${item.label}
+							</button>
+						`,
+					)}
+				</div>
+				<div class="ai-model-row">
+					<input
+						class="input"
+						placeholder=${knownLanguage ? 'Custom language…' : `Custom language (${language})`}
+						value=${custom}
+						onInput=${(e: Event) => setCustom((e.target as HTMLInputElement).value)}
+					/>
+					<button class="btn btn-ghost" disabled=${!custom.trim()} onClick=${() => applyLanguage(custom)}>
+						Use
+					</button>
+					<button class="btn btn-ghost" onClick=${() => applyLanguage('')}>Off</button>
+				</div>
+				${
+					language === '' &&
+					html`<p class="settings-hint">Translation is off. Translated text is shown as written.</p>`
+				}
+			</section>
+
+			<section class="settings-section">
+				<h3>Translate the project</h3>
+				${
+					project
+						? html`
+							<p class="settings-hint">
+								Translates every task in "${project.name}" into ${language || 'the chosen language'} and
+								caches the result here. Nothing is changed on the tasks themselves.
+							</p>
+							<button
+								class="btn"
+								disabled=${busy || !language || translateJob.value?.status === 'running'}
+								onClick=${() => void translateProject()}
+							>
+								${busy ? 'Starting…' : `Translate ${project.name} → ${language}`}
+							</button>
+							<${TranslateJobPanel} onRefresh=${() => forceRender((n) => n + 1)} />
+						`
+						: html`<p class="muted">Open a project first.</p>`
+				}
+			</section>
+
+			<section class="settings-section">
+				<h3>Cached translations</h3>
+				<p class="settings-hint">
+					${cachedCount} task(s) cached for ${language || 'no language'} ·
+					${(cachedBytes / 1024).toFixed(1)} KB of browser storage.
+				</p>
+				<button
+					class="btn btn-ghost"
+					disabled=${cachedCount === 0}
+					onClick=${() => {
+						clearTranslations()
+						forceRender((n) => n + 1)
+						toast('info', 'Translation cache cleared')
+					}}
+				>
+					Clear cache
+				</button>
 			</section>
 		</div>
 	`

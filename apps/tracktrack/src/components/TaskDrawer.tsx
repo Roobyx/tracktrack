@@ -2,7 +2,6 @@ import type { Task } from '@m2/track-service/src/types'
 import { html } from 'htm/preact'
 import { useEffect, useState } from 'preact/hooks'
 import { api } from '../api/client'
-import { renderMarkdown } from '../markdown'
 import { getActiveScope, reportError, selectedTask, tasks as tasksState, toast } from '../state'
 import {
 	formatDate,
@@ -15,6 +14,8 @@ import {
 	veToneClass,
 } from '../utils'
 import { TaskEditor } from './TaskEditor'
+import { TranslateButton } from './TranslateButton'
+import { TranslatedText, translatedTags } from './TranslatedText'
 
 export function TaskDrawer({
 	task,
@@ -120,6 +121,7 @@ export function TaskDrawer({
 					<div class="drawer-actions">
 						<button class="btn" onClick=${() => setMode('edit')}>Edit</button>
 						<button class="btn" onClick=${onAssess}>⚡ Assess</button>
+						<${TranslateButton} task=${task as Task} />
 						<button class="btn btn-danger-ghost" disabled=${busy} onClick=${() => void handleDelete()}>Delete</button>
 					</div>
 				`
@@ -164,7 +166,7 @@ function TaskReadView({ task, boards }: { task: Task; boards: import('../api/cli
 
 	return html`
 		<div class="drawer-body">
-			<h2 class="detail-title">${task.title}</h2>
+			<h2 class="detail-title"><${TranslatedText} task=${task} field="title" class="inner" /></h2>
 			<div class="detail-meta">
 				<span class="state-chip" style=${stateStyle(task.state)}>${task.state}</span>
 				<span class="priority-chip" style=${priorityStyle(task.priority)}>${task.priority}</span>
@@ -175,7 +177,7 @@ function TaskReadView({ task, boards }: { task: Task; boards: import('../api/cli
 				task.tags.length > 0 &&
 				html`
 				<div class="detail-tags">
-					${task.tags.map((t) => {
+					${translatedTags(task).map((t) => {
 						const color = getTagColor(t)
 						return html`<span class="tag" key=${t} style=${{ color, background: hexToRgba(color, 0.12), borderColor: hexToRgba(color, 0.3) }}>${t}</span>`
 					})}
@@ -187,7 +189,7 @@ function TaskReadView({ task, boards }: { task: Task; boards: import('../api/cli
 				<h5>Description</h5>
 				${
 					task.description
-						? html`<div class="markdown-body" dangerouslySetInnerHTML=${{ __html: renderMarkdown(task.description) }}></div>`
+						? html`<${TranslatedText} task=${task} field="description" markdown class="markdown-body" />`
 						: html`<p class="muted">No description</p>`
 				}
 			</div>
@@ -216,24 +218,24 @@ function TaskReadView({ task, boards }: { task: Task; boards: import('../api/cli
 						${planning.difficultyRating != null ? html`<span class="pill">Difficulty ${planning.difficultyRating}/5</span>` : null}
 						<span class=${veToneClass(ve)} title="Value / effort">${ve ?? 'V/E —'}</span>
 					</div>
-					${
-						planning.effectOnGame &&
-						html`
-						<div class="detail-subsection">
-							<h6>Effect on game</h6>
-							<div class="markdown-body" dangerouslySetInnerHTML=${{ __html: renderMarkdown(planning.effectOnGame) }}></div>
-						</div>
-					`
-					}
-					${
-						planning.implementationNotes &&
-						html`
-						<div class="detail-subsection">
-							<h6>Implementation notes</h6>
-							<div class="markdown-body" dangerouslySetInnerHTML=${{ __html: renderMarkdown(planning.implementationNotes) }}></div>
-						</div>
-					`
-					}
+				${
+					planning.effectOnGame &&
+					html`
+					<div class="detail-subsection">
+						<h6>Effect on game</h6>
+						<${TranslatedText} task=${task} field="effectOnGame" markdown class="markdown-body" />
+					</div>
+				`
+				}
+				${
+					planning.implementationNotes &&
+					html`
+					<div class="detail-subsection">
+						<h6>Implementation notes</h6>
+						<${TranslatedText} task=${task} field="implementationNotes" markdown class="markdown-body" />
+					</div>
+				`
+				}
 					${
 						assessment &&
 						html`

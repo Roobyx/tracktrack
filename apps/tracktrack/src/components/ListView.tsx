@@ -9,6 +9,7 @@ import {
 	getTagColor,
 	hexToRgba,
 } from '../utils'
+import { TranslatedText, translatedTags } from './TranslatedText'
 
 export function ListView({
 	tasks,
@@ -53,7 +54,7 @@ export function ListView({
 							<div class="list-top">
 								<span class="task-number">${formatTaskNumber(scope?.prefix ?? '', task.number)}</span>
 								${board ? html`<span class="board-badge" style=${board.color ? { '--board-color': board.color } : undefined}>${board.name}</span>` : null}
-								<span class="list-title">${task.title}</span>
+								<span class="list-title"><${TranslatedText} task=${task} field="title" class="inner" /></span>
 							</div>
 							<div class="list-meta">
 								<span class="state-chip" style=${stateChipStyle(task.state)}>${task.state}</span>
@@ -66,7 +67,7 @@ export function ListView({
 								task.tags.length > 0 &&
 								html`
 								<div class="list-tags">
-									${task.tags.map((t) => {
+									${translatedTags(task).map((t) => {
 										const color = getTagColor(t)
 										return html`<span class="tag" key=${t} style=${{ color, background: hexToRgba(color, 0.12), borderColor: hexToRgba(color, 0.3) }}>${t}</span>`
 									})}

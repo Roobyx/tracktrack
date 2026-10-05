@@ -4,6 +4,7 @@ import { useState } from 'preact/hooks'
 import { api } from '../api/client'
 import { reportError, tasks as tasksState, toast } from '../state'
 import { formatTaskNumber, getPriorityColor, getTagColor, hexToRgba } from '../utils'
+import { TranslatedText, translatedTags } from './TranslatedText'
 
 export function BoardView({
 	tasks,
@@ -108,18 +109,20 @@ function BoardCard({
 				<span class="task-number">${formatTaskNumber(scope?.prefix ?? '', task.number)}</span>
 				<span class="priority-dot" title=${task.priority} style=${{ background: getPriorityColor(task.priority) }}></span>
 			</div>
-			<div class="board-card-title">${task.title}</div>
-			${
-				task.tags.length > 0 &&
-				html`
+		<div class="board-card-title"><${TranslatedText} task=${task} field="title" class="inner" /></div>
+		${
+			task.tags.length > 0 &&
+			html`
 				<div class="board-card-tags">
-					${task.tags.slice(0, 3).map((t) => {
-						const color = getTagColor(t)
-						return html`<span class="tag tag-sm" key=${t} style=${{ color, background: hexToRgba(color, 0.12), borderColor: hexToRgba(color, 0.3) }}>${t}</span>`
-					})}
+					${translatedTags(task)
+						.slice(0, 3)
+						.map((t) => {
+							const color = getTagColor(t)
+							return html`<span class="tag tag-sm" key=${t} style=${{ color, background: hexToRgba(color, 0.12), borderColor: hexToRgba(color, 0.3) }}>${t}</span>`
+						})}
 				</div>
 			`
-			}
+		}
 			<div class="board-card-footer">
 				${task.assignee ? html`<span class="list-assignee">@${task.assignee}</span>` : html`<span></span>`}
 				<select

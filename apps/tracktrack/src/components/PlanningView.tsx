@@ -22,6 +22,7 @@ import {
 	ratingToneClass,
 	veToneClass,
 } from '../utils'
+import { TranslatedText, translatedTags } from './TranslatedText'
 
 const TEXT_SAVE_DEBOUNCE_MS = 600
 
@@ -426,15 +427,20 @@ export function PlanningView() {
 										/>
 									</td>
 									<td class="col-id" onClick=${() => emitSelect(task)}>${formatTaskNumber(scope?.prefix ?? '', task.number)}</td>
-									<td class="col-title" onClick=${() => emitSelect(task)} title=${task.title}>
-										<span class="planning-title">${task.title}</span>
-										${
-											task.tags.length > 0 &&
-											html`<span class="planning-mini-tags">
-											${task.tags.slice(0, 3).map((tag) => html`<span class="mini-tag" key=${tag} style=${{ borderColor: getTagColor(tag) }}>${tag}</span>`)}
-										</span>`
-										}
-									</td>
+								<td class="col-title" onClick=${() => emitSelect(task)} title=${task.title}>
+									<span class="planning-title"><${TranslatedText} task=${task} field="title" class="inner" /></span>
+									${
+										task.tags.length > 0 &&
+										html`<span class="planning-mini-tags">
+										${translatedTags(task)
+											.slice(0, 3)
+											.map(
+												(tag) =>
+													html`<span class="mini-tag" key=${tag} style=${{ borderColor: getTagColor(tag) }}>${tag}</span>`,
+											)}
+									</span>`
+									}
+								</td>
 									<td>
 										<select
 											class=${`planning-select ${implementationStatusClass(status)}`}

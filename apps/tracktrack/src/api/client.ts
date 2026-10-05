@@ -98,6 +98,49 @@ export type SplitJobStatus = {
 	error?: string
 }
 
+/** Translated prose for one task, as produced by the server-side translation. */
+export type TaskTranslation = {
+	language: string
+	title: string
+	description: string
+	tags: string[]
+	effectOnGame: string
+	implementationNotes: string
+	provider: string
+	model: string
+	promptVersion: number
+	translatedAt: string
+	/** `Task.updatedAt` the translation was produced from. */
+	sourceUpdatedAt: string
+	usage?: { promptTokens: number; completionTokens: number }
+}
+
+export type TranslateJobStatus = {
+	jobId: string
+	projectId: string
+	status: 'running' | 'done' | 'cancelled' | 'error'
+	language: string
+	model: string
+	total: number
+	completed: number
+	failed: number
+	usageTotals: { promptTokens: number; completionTokens: number }
+	error?: string
+}
+
+/** A page of finished task translations from a project run. */
+export type TranslateResultsPage = {
+	total: number
+	offset: number
+	results: {
+		taskId: string
+		number: number
+		ok: boolean
+		error?: string
+		translation?: TaskTranslation
+	}[]
+}
+
 let token: string | null = null
 
 export function setToken(value: string | null): void {
@@ -344,6 +387,37 @@ export const api = {
 		request<SplitJobStatus>(`/scopes/${scopeId}/planning/split/${jobId}`),
 	cancelSplit: (scopeId: string, jobId: string) =>
 		request(`/scopes/${scopeId}/planning/split/${jobId}/cancel`, { method: 'POST' }),
+
+	translateTask: (
+		scopeId: string,
+		taskId: string,
+		language: string,
+		options?: { provider?: 'openrouter' | 'openai'; model?: string },
+	) =>
+		request<{ translation: TaskTranslation }>('/translate/task', {
+			method: 'POST',
+			body: JSON.stringify({ scopeId, taskId, language, ...options }),
+		}).then((r) => r.translation),
+	startProjectTranslate: (
+		projectId: string,
+		language: string,
+		options?: {
+			provider?: 'openrouter' | 'openai'
+			model?: string
+			concurrency?: number
+		},
+	) =>
+		request<{ jobId: string }>('/translate/project', {
+			method: 'POST',
+			body: JSON.stringify({ projectId, language, ...options }),
+		}),
+	getTranslateJob: (jobId: string) => request<TranslateJobStatus>(`/translate/job/${jobId}`),
+	getTranslateResults: (jobId: string, offset: number, limit = 50) =>
+		request<TranslateResultsPage>(
+			`/translate/job/${jobId}/results?offset=${offset}&limit=${limit}`,
+		),
+	cancelTranslateJob: (jobId: string) =>
+		request(`/translate/job/${jobId}/cancel`, { method: 'POST' }),
 
 	getAiKeys: () => request<{ keys: AiKeyInfo[] }>('/ai/keys'),
 	saveAiKey: (provider: 'openrouter' | 'openai', key: string) =>
