@@ -14,7 +14,7 @@ const LLM_RETRY_BASE_DELAY_MS = 1000
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const workspaceRoot = resolve(__dirname, '../../..')
 
-export type LLMProvider = 'openrouter' | 'openai'
+export type LLMProvider = 'openrouter' | 'openai' | 'custom'
 
 export type AssessMode = 'full' | 'effects' | 'custom'
 
@@ -24,14 +24,43 @@ export function resolveAssessMode(value: unknown): AssessMode | null {
 
 export type LLMUsage = { promptTokens: number; completionTokens: number }
 
-const PROVIDER_CONFIG: Record<LLMProvider, { url: string; defaultModel: string }> = {
+export const CUSTOM_BASE_URL_ENV = 'TRACKTRACK_CUSTOM_BASE_URL'
+export const CUSTOM_API_KEY_ENV = 'TRACKTRACK_CUSTOM_API_KEY'
+export const CUSTOM_MODEL_ENV = 'TRACKTRACK_CUSTOM_MODEL'
+
+type ProviderConfig = {
+	/** Fixed chat-completions URL, or null when it is resolved from a base-URL env var. */
+	url: string | null
+	/** Built-in fallback model, or null when the provider has no default. */
+	defaultModel: string | null
+	/** Env var holding the provider's API key. */
+	apiKeyEnv: string
+	/** Env var holding a base URL, used when `url` is null. */
+	baseUrlEnv?: string
+	/** Env var holding a provider-specific model override. */
+	modelEnv?: string
+}
+
+const PROVIDER_CONFIG: Record<LLMProvider, ProviderConfig> = {
 	openrouter: {
 		url: 'https://openrouter.ai/api/v1/chat/completions',
 		defaultModel: 'openrouter/free',
+		apiKeyEnv: 'OPENROUTER_API_KEY',
 	},
 	openai: {
 		url: 'https://api.openai.com/v1/chat/completions',
 		defaultModel: 'gpt-4o',
+		apiKeyEnv: 'OPENAI_API_KEY',
+	},
+	// Any OpenAI-compatible endpoint (an OmniRoute gateway, a local llama.cpp
+	// server, …). The base URL, key and model come from env/settings, so no
+	// endpoint is baked in.
+	custom: {
+		url: null,
+		defaultModel: null,
+		apiKeyEnv: CUSTOM_API_KEY_ENV,
+		baseUrlEnv: CUSTOM_BASE_URL_ENV,
+		modelEnv: CUSTOM_MODEL_ENV,
 	},
 }
 
@@ -67,20 +96,85 @@ export class LLMHttpError extends Error {
 }
 
 export function resolveProvider(value: unknown): LLMProvider | null {
-	return value === 'openrouter' || value === 'openai' ? value : null
+	return value === 'openrouter' || value === 'openai' || value === 'custom' ? value : null
+}
+
+/** Env var that holds a provider's API key. */
+export function providerApiKeyEnvVar(provider: LLMProvider): string {
+	return PROVIDER_CONFIG[provider].apiKeyEnv
+}
+
+/**
+ * Accepts either a base URL (`https://host/v1`) or a full chat-completions URL
+ * and returns the URL to POST to.
+ */
+function buildChatCompletionsUrl(base: string): string {
+	const trimmed = base.trim().replace(/\/+$/, '')
+	return /\/chat\/completions$/i.test(trimmed) ? trimmed : `${trimmed}/chat/completions`
+}
+
+/** Full chat-completions URL for a provider, or null when it is not configured. */
+export function resolveProviderUrl(provider: LLMProvider): string | null {
+	const config = PROVIDER_CONFIG[provider]
+	if (config.url) return config.url
+	const base = config.baseUrlEnv ? process.env[config.baseUrlEnv]?.trim() : ''
+	return base ? buildChatCompletionsUrl(base) : null
 }
 
 export function resolveAssessmentModel(provider: LLMProvider, requestModel?: string): string {
 	if (requestModel?.trim()) return requestModel.trim()
+	const config = PROVIDER_CONFIG[provider]
+	const providerModel = config.modelEnv ? process.env[config.modelEnv]?.trim() : ''
+	if (providerModel) return providerModel
 	const envModel = process.env.TRACKTRACK_ASSESS_MODEL
 	if (envModel?.trim()) return envModel.trim()
-	return PROVIDER_CONFIG[provider].defaultModel
+	return config.defaultModel ?? ''
 }
 
 export function resolveAssessmentApiKey(provider: LLMProvider, requestKey?: string): string | null {
 	if (requestKey?.trim()) return requestKey.trim()
-	const envVar = provider === 'openrouter' ? 'OPENROUTER_API_KEY' : 'OPENAI_API_KEY'
-	return process.env[envVar] ?? null
+	return process.env[PROVIDER_CONFIG[provider].apiKeyEnv] ?? null
+}
+
+export type LlmClientConfig = {
+	provider: LLMProvider
+	apiKey: string
+	model: string
+	url: string
+}
+
+/** Resolves a ready-to-use client config, or an actionable error message. */
+export function resolveLlmClient(options: {
+	provider: LLMProvider
+	apiKey?: string
+	model?: string
+}): { ok: true; client: LlmClientConfig } | { ok: false; error: string } {
+	const { provider } = options
+	const config = PROVIDER_CONFIG[provider]
+	const url = resolveProviderUrl(provider)
+	if (!url) {
+		return {
+			ok: false,
+			error: `No base URL configured for provider "${provider}": set ${config.baseUrlEnv} in the root .env`,
+		}
+	}
+	const apiKey = resolveAssessmentApiKey(provider, options.apiKey)
+	if (!apiKey) {
+		return {
+			ok: false,
+			error: `No API key available: pass apiKey in the request or set ${config.apiKeyEnv} in the root .env`,
+		}
+	}
+	const model = resolveAssessmentModel(provider, options.model)
+	if (!model) {
+		return {
+			ok: false,
+			error: `No model available: pass model in the request or set TRACKTRACK_ASSESS_MODEL${
+				config.modelEnv ? ` or ${config.modelEnv}` : ''
+			} in the root .env`,
+		}
+	}
+	return { ok: true, client: { provider, apiKey, model, url } }
 }
 
 export async function callLLM(options: {
@@ -89,8 +183,16 @@ export async function callLLM(options: {
 	model: string
 	messages: { role: string; content: string }[]
 }): Promise<{ content: string; usage?: LLMUsage }> {
-	const config = PROVIDER_CONFIG[options.provider]
-	const response = await fetch(config.url, {
+	const url = resolveProviderUrl(options.provider)
+	if (!url) {
+		throw new LLMHttpError(
+			500,
+			`No base URL configured for provider "${options.provider}": set ${
+				PROVIDER_CONFIG[options.provider].baseUrlEnv ?? 'the provider URL'
+			} in the root .env`,
+		)
+	}
+	const response = await fetch(url, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json',

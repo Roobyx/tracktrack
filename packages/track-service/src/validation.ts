@@ -103,7 +103,7 @@ export const TaskPlanningUpdateSchema = z.object({
 })
 
 export const AiAssessmentMetaSchema = z.object({
-	provider: z.enum(['openrouter', 'openai']),
+	provider: z.enum(['openrouter', 'openai', 'custom']),
 	model: z.string().min(1),
 	assessedAt: z.string(),
 	promptVersion: z.number().int(),

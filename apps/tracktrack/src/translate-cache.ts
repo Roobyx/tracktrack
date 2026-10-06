@@ -1,6 +1,6 @@
 import type { Task } from '@m2/track-service/src/types'
 import { signal } from '@preact/signals'
-import { api, type TaskTranslation } from './api/client'
+import { api, type AiProvider, type TaskTranslation } from './api/client'
 import { loadPref, savePref, toast, translateLanguage } from './state'
 
 /**
@@ -144,12 +144,12 @@ export function clearTranslations(language?: string): void {
 	savePref(storageKey(target), {})
 }
 
-function activeProvider(): 'openrouter' | 'openai' {
+function activeProvider(): AiProvider {
 	const stored = loadPref<string>('assess-provider', 'openrouter')
-	return stored === 'openai' ? 'openai' : 'openrouter'
+	return stored === 'openai' || stored === 'custom' ? stored : 'openrouter'
 }
 
-export function translationProvider(): 'openrouter' | 'openai' {
+export function translationProvider(): AiProvider {
 	return activeProvider()
 }
 

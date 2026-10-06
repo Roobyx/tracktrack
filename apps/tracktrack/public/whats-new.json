@@ -250,8 +250,18 @@
 			]
 		},
 		"tracktrack": {
-			"version": "0.12.1",
+			"version": "0.18.1",
 			"entries": [
+				{
+					"version": "0.18.1",
+					"date": "2026-10-06T00:00:00.000Z",
+					"changes": [
+						"Added a generic 'custom' AI provider for any OpenAI-compatible endpoint (for example a self-hosted OmniRoute gateway): set TRACKTRACK_CUSTOM_BASE_URL plus TRACKTRACK_CUSTOM_API_KEY and TRACKTRACK_CUSTOM_MODEL, or configure them from Settings → AI keys / Custom endpoint",
+						"The custom base URL accepts either a base (https://host/v1) or a full chat-completions URL; the /chat/completions path is appended automatically when missing",
+						"Model resolution now checks TRACKTRACK_CUSTOM_MODEL before TRACKTRACK_ASSESS_MODEL for the custom provider, then falls back to the provider default"
+					],
+					"buildNumber": "2026.10.06"
+				},
 				{
 					"version": "0.12.0",
 					"date": "2026-09-05T00:00:00.000Z",

@@ -96,12 +96,14 @@ import {
 import { ZodError } from 'zod'
 import {
 	AssessmentJobConflictError,
+	CUSTOM_BASE_URL_ENV,
+	CUSTOM_MODEL_ENV,
 	getAssessmentJob,
 	jobToSummary,
+	providerApiKeyEnvVar,
 	requestJobCancel,
 	resolveAssessMode,
-	resolveAssessmentApiKey,
-	resolveAssessmentModel,
+	resolveLlmClient,
 	resolveProvider,
 	startAssessmentJob,
 } from './ai-assess'
@@ -1117,27 +1119,21 @@ async function handlePlanningSplit(
 		}
 		const provider = resolveProvider(body.provider ?? 'openrouter')
 		if (!provider) {
-			respondJson(response, 400, { errors: ['provider must be "openrouter" or "openai"'] })
-			return
-		}
-		const apiKey = resolveAssessmentApiKey(
-			provider,
-			typeof body.apiKey === 'string' ? body.apiKey : undefined,
-		)
-		if (!apiKey) {
 			respondJson(response, 400, {
-				errors: [
-					`No API key available: pass apiKey in the request or set ${
-						provider === 'openrouter' ? 'OPENROUTER_API_KEY' : 'OPENAI_API_KEY'
-					} in the root .env`,
-				],
+				errors: ['provider must be "openrouter", "openai" or "custom"'],
 			})
 			return
 		}
-		const model = resolveAssessmentModel(
+		const resolved = resolveLlmClient({
 			provider,
-			typeof body.model === 'string' ? body.model : undefined,
-		)
+			apiKey: typeof body.apiKey === 'string' ? body.apiKey : undefined,
+			model: typeof body.model === 'string' ? body.model : undefined,
+		})
+		if (!resolved.ok) {
+			respondJson(response, 400, { errors: [resolved.error] })
+			return
+		}
+		const { apiKey, model } = resolved.client
 		const boardId =
 			typeof body.boardId === 'string' && body.boardId.trim() ? body.boardId.trim() : null
 		if (boardId && !(await findBoardById(scopeId, boardId))) {
@@ -1222,23 +1218,21 @@ async function handlePlanning(
 		const body = await readJsonBody(request)
 		const provider = resolveProvider(body.provider ?? 'openrouter')
 		if (!provider) {
-			respondJson(response, 400, { errors: ['provider must be "openrouter" or "openai"'] })
-			return
-		}
-		const apiKey = resolveAssessmentApiKey(
-			provider,
-			typeof body.apiKey === 'string' ? body.apiKey : undefined,
-		)
-		if (!apiKey) {
 			respondJson(response, 400, {
-				errors: [
-					`No API key available: pass apiKey in the request or set ${
-						provider === 'openrouter' ? 'OPENROUTER_API_KEY' : 'OPENAI_API_KEY'
-					} in the root .env`,
-				],
+				errors: ['provider must be "openrouter", "openai" or "custom"'],
 			})
 			return
 		}
+		const resolved = resolveLlmClient({
+			provider,
+			apiKey: typeof body.apiKey === 'string' ? body.apiKey : undefined,
+			model: typeof body.model === 'string' ? body.model : undefined,
+		})
+		if (!resolved.ok) {
+			respondJson(response, 400, { errors: [resolved.error] })
+			return
+		}
+		const { apiKey, model } = resolved.client
 		if (body.taskIds !== undefined) {
 			if (
 				!Array.isArray(body.taskIds) ||
@@ -1260,10 +1254,6 @@ async function handlePlanning(
 			})
 			return
 		}
-		const model = resolveAssessmentModel(
-			provider,
-			typeof body.model === 'string' ? body.model : undefined,
-		)
 		const mode = resolveAssessMode(body.mode ?? 'full')
 		if (!mode) {
 			respondJson(response, 400, {
@@ -1372,21 +1362,18 @@ async function handleTranslate(
 		}
 		const provider = resolveProvider(body.provider ?? 'openrouter')
 		if (!provider) {
-			respondJson(response, 400, { errors: ['provider must be "openrouter" or "openai"'] })
+			respondJson(response, 400, {
+				errors: ['provider must be "openrouter", "openai" or "custom"'],
+			})
 			return
 		}
-		const apiKey = resolveAssessmentApiKey(
+		const resolved = resolveLlmClient({
 			provider,
-			typeof body.apiKey === 'string' ? body.apiKey : undefined,
-		)
-		if (!apiKey) {
-			respondJson(response, 400, {
-				errors: [
-					`No API key available: pass apiKey in the request or set ${
-						provider === 'openrouter' ? 'OPENROUTER_API_KEY' : 'OPENAI_API_KEY'
-					} in the root .env`,
-				],
-			})
+			apiKey: typeof body.apiKey === 'string' ? body.apiKey : undefined,
+			model: typeof body.model === 'string' ? body.model : undefined,
+		})
+		if (!resolved.ok) {
+			respondJson(response, 400, { errors: [resolved.error] })
 			return
 		}
 		const task = await findTaskById(body.scopeId, body.taskId)
@@ -1398,11 +1385,8 @@ async function handleTranslate(
 			task,
 			language,
 			provider,
-			model: resolveAssessmentModel(
-				provider,
-				typeof body.model === 'string' ? body.model : undefined,
-			),
-			apiKey,
+			model: resolved.client.model,
+			apiKey: resolved.client.apiKey,
 		})
 		if (!result.ok) {
 			respondJson(response, 502, { errors: [result.error] })
@@ -1446,21 +1430,18 @@ async function handleTranslate(
 		}
 		const provider = resolveProvider(body.provider ?? 'openrouter')
 		if (!provider) {
-			respondJson(response, 400, { errors: ['provider must be "openrouter" or "openai"'] })
+			respondJson(response, 400, {
+				errors: ['provider must be "openrouter", "openai" or "custom"'],
+			})
 			return
 		}
-		const apiKey = resolveAssessmentApiKey(
+		const resolved = resolveLlmClient({
 			provider,
-			typeof body.apiKey === 'string' ? body.apiKey : undefined,
-		)
-		if (!apiKey) {
-			respondJson(response, 400, {
-				errors: [
-					`No API key available: pass apiKey in the request or set ${
-						provider === 'openrouter' ? 'OPENROUTER_API_KEY' : 'OPENAI_API_KEY'
-					} in the root .env`,
-				],
-			})
+			apiKey: typeof body.apiKey === 'string' ? body.apiKey : undefined,
+			model: typeof body.model === 'string' ? body.model : undefined,
+		})
+		if (!resolved.ok) {
+			respondJson(response, 400, { errors: [resolved.error] })
 			return
 		}
 		try {
@@ -1468,11 +1449,8 @@ async function handleTranslate(
 				projectId: body.projectId,
 				language,
 				provider,
-				model: resolveAssessmentModel(
-					provider,
-					typeof body.model === 'string' ? body.model : undefined,
-				),
-				apiKey,
+				model: resolved.client.model,
+				apiKey: resolved.client.apiKey,
 				concurrency: typeof body.concurrency === 'number' ? body.concurrency : undefined,
 			})
 			respondJson(response, 200, { jobId: job.id })
@@ -1681,7 +1659,7 @@ async function handleBoards(
 	respondJson(response, 405, { errors: ['Method not allowed'] })
 }
 
-const AI_PROVIDERS = ['openrouter', 'openai'] as const
+const AI_PROVIDERS = ['openrouter', 'openai', 'custom'] as const
 type AiProvider = (typeof AI_PROVIDERS)[number]
 
 const __routesDirname = dirname(fileURLToPath(import.meta.url))
@@ -1689,7 +1667,11 @@ const WORKSPACE_ROOT = resolve(__routesDirname, '../../..')
 const ENV_FILE_PATH = resolve(WORKSPACE_ROOT, '.env')
 
 function aiKeyName(provider: AiProvider): string {
-	return provider === 'openai' ? 'OPENAI_API_KEY' : 'OPENROUTER_API_KEY'
+	return providerApiKeyEnvVar(provider)
+}
+
+function parseAiProvider(value: unknown): AiProvider | null {
+	return value === 'openrouter' || value === 'openai' || value === 'custom' ? value : null
 }
 
 async function readEnvFileLines(): Promise<string[]> {
@@ -1807,7 +1789,13 @@ async function handleAiSettings(
 
 		if (request.method === 'PUT' || request.method === 'DELETE') {
 			const body = await readJsonBody(request)
-			const provider: AiProvider = body.provider === 'openai' ? 'openai' : 'openrouter'
+			const provider = parseAiProvider(body.provider)
+			if (!provider) {
+				respondJson(response, 400, {
+					errors: ['provider must be "openrouter", "openai" or "custom"'],
+				})
+				return
+			}
 			const keyName = aiKeyName(provider)
 			const lines = await readEnvFileLines()
 
@@ -1841,20 +1829,32 @@ async function handleAiSettings(
 		if (request.method === 'GET') {
 			respondJson(response, 200, {
 				assessModel: process.env.TRACKTRACK_ASSESS_MODEL?.trim() ?? '',
+				customBaseUrl: process.env[CUSTOM_BASE_URL_ENV]?.trim() ?? '',
+				customModel: process.env[CUSTOM_MODEL_ENV]?.trim() ?? '',
 			})
 			return
 		}
 		if (request.method === 'PUT') {
 			const body = await readJsonBody(request)
-			const model = typeof body.assessModel === 'string' ? body.assessModel.trim() : ''
 			const lines = await readEnvFileLines()
-			if (model) {
-				upsertEnvLine(lines, 'TRACKTRACK_ASSESS_MODEL', model)
-				process.env.TRACKTRACK_ASSESS_MODEL = model
-			} else {
-				const index = lines.findIndex((l) => l.startsWith('TRACKTRACK_ASSESS_MODEL='))
+			const setEnv = (name: string, value: string) => {
+				if (value) {
+					upsertEnvLine(lines, name, value)
+					process.env[name] = value
+					return
+				}
+				const index = lines.findIndex((line) => line.startsWith(`${name}=`))
 				if (index !== -1) lines.splice(index, 1)
-				delete process.env.TRACKTRACK_ASSESS_MODEL
+				delete process.env[name]
+			}
+			if (typeof body.assessModel === 'string') {
+				setEnv('TRACKTRACK_ASSESS_MODEL', body.assessModel.trim())
+			}
+			if (typeof body.customBaseUrl === 'string') {
+				setEnv(CUSTOM_BASE_URL_ENV, body.customBaseUrl.trim())
+			}
+			if (typeof body.customModel === 'string') {
+				setEnv(CUSTOM_MODEL_ENV, body.customModel.trim())
 			}
 			await writeEnvFileLines(lines)
 			respondJson(response, 200, { ok: true })

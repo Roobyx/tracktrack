@@ -29,8 +29,7 @@ import {
 	AssessmentJobConflictError,
 	jobToSummary,
 	resolveAssessMode,
-	resolveAssessmentApiKey,
-	resolveAssessmentModel,
+	resolveLlmClient,
 	resolveProvider,
 	startAssessmentJob,
 } from './ai-assess'
@@ -253,18 +252,19 @@ export function buildTools() {
 					},
 					provider: {
 						type: 'string',
-						enum: ['openrouter', 'openai'],
-						description: 'LLM provider (default openrouter)',
+						enum: ['openrouter', 'openai', 'custom'],
+						description:
+							'LLM provider (default openrouter). "custom" is any OpenAI-compatible endpoint configured through TRACKTRACK_CUSTOM_BASE_URL',
 					},
 					model: {
 						type: 'string',
 						description:
-							'Model override (default: TRACKTRACK_ASSESS_MODEL env or provider default)',
+							'Model override (default: TRACKTRACK_ASSESS_MODEL, TRACKTRACK_CUSTOM_MODEL, or provider default)',
 					},
 					apiKey: {
 						type: 'string',
 						description:
-							'Optional API key; falls back to OPENROUTER_API_KEY / OPENAI_API_KEY in root .env',
+							'Optional API key; falls back to OPENROUTER_API_KEY / OPENAI_API_KEY / TRACKTRACK_CUSTOM_API_KEY in root .env',
 					},
 					overwrite: {
 						type: 'boolean',
@@ -640,26 +640,19 @@ export async function handleToolCall(
 			}
 			const provider = resolveProvider(args.provider ?? 'openrouter')
 			if (!provider) {
-				return mcpError('provider must be "openrouter" or "openai"')
+				return mcpError('provider must be "openrouter", "openai" or "custom"')
 			}
-			const apiKey = resolveAssessmentApiKey(
+			const resolved = resolveLlmClient({
 				provider,
-				typeof args.apiKey === 'string' ? args.apiKey : undefined,
-			)
-			if (!apiKey) {
-				return mcpError(
-					`No API key available: pass apiKey or set ${
-						provider === 'openrouter' ? 'OPENROUTER_API_KEY' : 'OPENAI_API_KEY'
-					} in the root .env`,
-				)
+				apiKey: typeof args.apiKey === 'string' ? args.apiKey : undefined,
+				model: typeof args.model === 'string' ? args.model : undefined,
+			})
+			if (!resolved.ok) {
+				return mcpError(resolved.error)
 			}
 			const taskIds = Array.isArray(args.taskIds)
 				? args.taskIds.filter((id): id is string => typeof id === 'string' && !!id)
 				: undefined
-			const model = resolveAssessmentModel(
-				provider,
-				typeof args.model === 'string' ? args.model : undefined,
-			)
 			const concurrency =
 				typeof args.concurrency === 'number' && Number.isInteger(args.concurrency)
 					? Math.max(1, Math.min(args.concurrency, 8))
@@ -677,8 +670,8 @@ export async function handleToolCall(
 					scopeId,
 					taskIds,
 					provider,
-					model,
-					apiKey,
+					model: resolved.client.model,
+					apiKey: resolved.client.apiKey,
 					overwrite: args.overwrite === true,
 					concurrency,
 					mode,

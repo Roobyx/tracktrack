@@ -50,8 +50,14 @@ export type TaskPlanningUpdate = {
 	[K in keyof TaskPlanning]: TaskPlanning[K] | null
 }
 
+/**
+ * LLM provider ids. `custom` is any OpenAI-compatible endpoint (for example an
+ * OmniRoute gateway) configured through the custom base-URL env vars.
+ */
+export type AiProvider = 'openrouter' | 'openai' | 'custom'
+
 export type AiAssessmentMeta = {
-	provider: 'openrouter' | 'openai'
+	provider: AiProvider
 	model: string
 	assessedAt: string
 	promptVersion: number

@@ -123,6 +123,28 @@ browser — no provider key ever reaches the client.
 | `GET` | `/translate/job/:jobId/results` | Page of finished translations (`offset`, `limit`) for the browser cache |
 | `POST` | `/translate/job/:jobId/cancel` | Cancel a running job |
 
+## AI providers
+
+Assessment, translation and knowledge-file splitting all run on the server
+through one OpenAI-compatible chat-completions transport. Pick a provider per
+request (GUI dropdown, REST `provider` field, or the MCP `assess_tasks` tool):
+
+| Provider     | Endpoint                                   | Key env var                 | Model default               |
+| ------------ | ------------------------------------------ | --------------------------- | --------------------------- |
+| `openrouter` | `https://openrouter.ai/api/v1/...`         | `OPENROUTER_API_KEY`        | `openrouter/free`           |
+| `openai`     | `https://api.openai.com/v1/...`            | `OPENAI_API_KEY`            | `gpt-4o`                    |
+| `custom`     | `TRACKTRACK_CUSTOM_BASE_URL`               | `TRACKTRACK_CUSTOM_API_KEY` | `TRACKTRACK_CUSTOM_MODEL`   |
+
+The `custom` provider targets any OpenAI-compatible gateway — a self-hosted
+OmniRoute instance, llama.cpp, vLLM, LM Studio, and so on. Set
+`TRACKTRACK_CUSTOM_BASE_URL` to the base URL (`https://host/v1`); the
+`/chat/completions` path is appended automatically, but a full URL is accepted
+too. An admin can also set the base URL, model and key from
+**Settings → AI keys / Custom endpoint**, which persists them to the repo-root
+`.env`. Model resolution order is: request `model` → `TRACKTRACK_CUSTOM_MODEL`
+(custom only) → `TRACKTRACK_ASSESS_MODEL` → provider default. No provider key
+ever reaches the client.
+
 ## Docker / Portainer
 
 ```bash

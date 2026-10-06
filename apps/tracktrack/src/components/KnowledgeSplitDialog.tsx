@@ -1,6 +1,6 @@
 import { html } from 'htm/preact'
 import { useEffect, useMemo, useState } from 'preact/hooks'
-import { api, type KnowledgeDocSummary } from '../api/client'
+import { api, type AiProvider, type KnowledgeDocSummary } from '../api/client'
 import {
 	activeBoardId,
 	boards,
@@ -37,10 +37,8 @@ export function KnowledgeSplitDialog() {
 	const [boardId, setBoardId] = useState(() =>
 		boards.value.some((b) => b.id === activeBoardId.value) ? activeBoardId.value : '',
 	)
-	const [provider, setProvider] = useState<'openrouter' | 'openai'>(
-		() =>
-			(localStorage.getItem('tracktrack:assess-provider') as 'openrouter' | 'openai') ??
-			'openrouter',
+	const [provider, setProvider] = useState<AiProvider>(
+		() => (localStorage.getItem('tracktrack:assess-provider') as AiProvider) ?? 'openrouter',
 	)
 	const [model, setModel] = useState('')
 	const [starting, setStarting] = useState(false)
@@ -216,15 +214,14 @@ export function KnowledgeSplitDialog() {
 							class="input"
 							value=${provider}
 							onChange=${(e: Event) => {
-								const value = (e.target as HTMLSelectElement).value as
-									| 'openrouter'
-									| 'openai'
+								const value = (e.target as HTMLSelectElement).value as AiProvider
 								localStorage.setItem('tracktrack:assess-provider', value)
 								setProvider(value)
 							}}
 						>
 							<option value="openrouter">openrouter</option>
 							<option value="openai">openai</option>
+							<option value="custom">custom</option>
 						</select>
 					</label>
 					<label class="field">

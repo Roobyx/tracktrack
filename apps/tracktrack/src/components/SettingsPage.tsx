@@ -1,6 +1,6 @@
 import { html } from 'htm/preact'
 import { useEffect, useState } from 'preact/hooks'
-import { api, logout } from '../api/client'
+import { api, type AiProvider, logout } from '../api/client'
 import {
 	type Accent,
 	accent,
@@ -503,9 +503,11 @@ type AiKeyRow = { id: string; hasKey: boolean; masked: string }
 function AiSection() {
 	const [keys, setKeys] = useState<AiKeyRow[]>([])
 	const [savedModel, setSavedModel] = useState('')
-	const [providerDraft, setProviderDraft] = useState<'openrouter' | 'openai'>('openrouter')
+	const [providerDraft, setProviderDraft] = useState<AiProvider>('openrouter')
 	const [keyDraft, setKeyDraft] = useState('')
 	const [modelDraft, setModelDraft] = useState('')
+	const [customBaseUrlDraft, setCustomBaseUrlDraft] = useState('')
+	const [customModelDraft, setCustomModelDraft] = useState('')
 	const [busy, setBusy] = useState(false)
 	const [message, setMessage] = useState('')
 
@@ -523,6 +525,8 @@ function AiSection() {
 			setKeys(keysData.keys)
 			setSavedModel(settingsData.assessModel)
 			setModelDraft(settingsData.assessModel)
+			setCustomBaseUrlDraft(settingsData.customBaseUrl)
+			setCustomModelDraft(settingsData.customModel)
 		} catch (err) {
 			setMessage(err instanceof Error ? err.message : 'Failed to load AI settings')
 		}
@@ -548,7 +552,7 @@ function AiSection() {
 	async function removeKey(id: string) {
 		setBusy(true)
 		try {
-			await api.deleteAiKey(id as 'openrouter' | 'openai')
+			await api.deleteAiKey(id as AiProvider)
 			await reload()
 			toast('good', 'API key removed')
 		} catch (err) {
@@ -562,11 +566,28 @@ function AiSection() {
 		setBusy(true)
 		setMessage('')
 		try {
-			await api.saveAiSettings(modelDraft.trim())
+			await api.saveAiSettings({ assessModel: modelDraft.trim() })
 			await reload()
 			toast('good', 'Default assessment model saved')
 		} catch (err) {
 			reportError('Failed to save model', err)
+		} finally {
+			setBusy(false)
+		}
+	}
+
+	async function saveCustomEndpoint() {
+		setBusy(true)
+		setMessage('')
+		try {
+			await api.saveAiSettings({
+				customBaseUrl: customBaseUrlDraft.trim(),
+				customModel: customModelDraft.trim(),
+			})
+			await reload()
+			toast('good', 'Custom endpoint saved')
+		} catch (err) {
+			reportError('Failed to save custom endpoint', err)
 		} finally {
 			setBusy(false)
 		}
@@ -604,10 +625,11 @@ function AiSection() {
 					<select
 						class="input"
 						value=${providerDraft}
-						onChange=${(e: Event) => setProviderDraft((e.target as HTMLSelectElement).value as 'openrouter' | 'openai')}
+						onChange=${(e: Event) => setProviderDraft((e.target as HTMLSelectElement).value as AiProvider)}
 					>
 						<option value="openrouter">openrouter</option>
 						<option value="openai">openai</option>
+						<option value="custom">custom</option>
 					</select>
 					<input
 						class="input"
@@ -637,6 +659,38 @@ function AiSection() {
 						onInput=${(e: Event) => setModelDraft((e.target as HTMLInputElement).value)}
 					/>
 					<button class="btn btn-primary" disabled=${busy} onClick=${() => void saveModel()}>Save</button>
+				</div>
+			</section>
+
+			<section class="settings-section">
+				<h3>Custom endpoint</h3>
+				<p class="settings-hint">
+					OpenAI-compatible base URL for the <code>custom</code> provider (for example an
+					OmniRoute gateway). Writes <code>TRACKTRACK_CUSTOM_BASE_URL</code> and
+					<code>TRACKTRACK_CUSTOM_MODEL</code>; the key is saved above as the
+					<code>custom</code> provider. Use <code>https://host/v1</code> — the
+					<code>/chat/completions</code> path is appended automatically.
+				</p>
+				<div class="ai-model-row">
+					<input
+						class="input"
+						type="text"
+						placeholder="https://omniroute.example.com/v1"
+						value=${customBaseUrlDraft}
+						onInput=${(e: Event) => setCustomBaseUrlDraft((e.target as HTMLInputElement).value)}
+					/>
+				</div>
+				<div class="ai-model-row">
+					<input
+						class="input"
+						type="text"
+						placeholder="Model id, e.g. openai/gpt-4o"
+						value=${customModelDraft}
+						onInput=${(e: Event) => setCustomModelDraft((e.target as HTMLInputElement).value)}
+					/>
+					<button class="btn btn-primary" disabled=${busy} onClick=${() => void saveCustomEndpoint()}>
+						Save
+					</button>
 				</div>
 			</section>
 		</div>

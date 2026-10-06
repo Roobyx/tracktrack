@@ -1,10 +1,13 @@
 import type {
+	AiProvider,
 	CreateTaskInput,
 	Scope,
 	Task,
 	UpdateTaskInput,
 	User,
 } from '@m2/track-service/src/types'
+
+export type { AiProvider }
 
 const API_BASE = '/api/tracktrack'
 
@@ -348,7 +351,7 @@ export const api = {
 		scopeId: string,
 		options: {
 			taskIds?: string[]
-			provider?: 'openrouter' | 'openai'
+			provider?: AiProvider
 			model?: string
 			overwrite?: boolean
 			concurrency?: number
@@ -374,7 +377,7 @@ export const api = {
 		options: {
 			docId: string
 			boardId?: string | null
-			provider?: 'openrouter' | 'openai'
+			provider?: AiProvider
 			model?: string
 			assessAfter?: boolean
 		},
@@ -392,7 +395,7 @@ export const api = {
 		scopeId: string,
 		taskId: string,
 		language: string,
-		options?: { provider?: 'openrouter' | 'openai'; model?: string },
+		options?: { provider?: AiProvider; model?: string },
 	) =>
 		request<{ translation: TaskTranslation }>('/translate/task', {
 			method: 'POST',
@@ -402,7 +405,7 @@ export const api = {
 		projectId: string,
 		language: string,
 		options?: {
-			provider?: 'openrouter' | 'openai'
+			provider?: AiProvider
 			model?: string
 			concurrency?: number
 		},
@@ -420,11 +423,17 @@ export const api = {
 		request(`/translate/job/${jobId}/cancel`, { method: 'POST' }),
 
 	getAiKeys: () => request<{ keys: AiKeyInfo[] }>('/ai/keys'),
-	saveAiKey: (provider: 'openrouter' | 'openai', key: string) =>
+	saveAiKey: (provider: AiProvider, key: string) =>
 		request('/ai/keys', { method: 'PUT', body: JSON.stringify({ provider, key }) }),
-	deleteAiKey: (provider: 'openrouter' | 'openai') =>
+	deleteAiKey: (provider: AiProvider) =>
 		request('/ai/keys', { method: 'DELETE', body: JSON.stringify({ provider }) }),
-	getAiSettings: () => request<{ assessModel: string }>('/ai/settings'),
-	saveAiSettings: (assessModel: string) =>
-		request('/ai/settings', { method: 'PUT', body: JSON.stringify({ assessModel }) }),
+	getAiSettings: () =>
+		request<{ assessModel: string; customBaseUrl: string; customModel: string }>(
+			'/ai/settings',
+		),
+	saveAiSettings: (settings: {
+		assessModel?: string
+		customBaseUrl?: string
+		customModel?: string
+	}) => request('/ai/settings', { method: 'PUT', body: JSON.stringify(settings) }),
 }

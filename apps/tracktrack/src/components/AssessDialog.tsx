@@ -1,6 +1,6 @@
 import { html } from 'htm/preact'
 import { useMemo, useState } from 'preact/hooks'
-import { api } from '../api/client'
+import { api, type AiProvider } from '../api/client'
 import {
 	assessDialog,
 	assessFocusTaskId,
@@ -39,10 +39,8 @@ export function AssessDialog({ onRefresh }: { onRefresh: () => void }) {
 	const [overwrite, setOverwrite] = useState(false)
 	const [mode, setMode] = useState<AssessMode>('full')
 	const [customQuery, setCustomQuery] = useState('')
-	const [provider, setProvider] = useState<'openrouter' | 'openai'>(
-		() =>
-			(localStorage.getItem('tracktrack:assess-provider') as 'openrouter' | 'openai') ??
-			'openrouter',
+	const [provider, setProvider] = useState<AiProvider>(
+		() => (localStorage.getItem('tracktrack:assess-provider') as AiProvider) ?? 'openrouter',
 	)
 	const [model, setModel] = useState('')
 	const [starting, setStarting] = useState(false)
@@ -71,7 +69,7 @@ export function AssessDialog({ onRefresh }: { onRefresh: () => void }) {
 		setChecked([])
 	}
 
-	function setProviderPersisted(value: 'openrouter' | 'openai') {
+	function setProviderPersisted(value: AiProvider) {
 		localStorage.setItem('tracktrack:assess-provider', value)
 		setProvider(value)
 	}
@@ -209,10 +207,11 @@ export function AssessDialog({ onRefresh }: { onRefresh: () => void }) {
 						<select
 							class="input"
 							value=${provider}
-							onChange=${(e: Event) => setProviderPersisted((e.target as HTMLSelectElement).value as 'openrouter' | 'openai')}
+							onChange=${(e: Event) => setProviderPersisted((e.target as HTMLSelectElement).value as AiProvider)}
 						>
 							<option value="openrouter">openrouter</option>
 							<option value="openai">openai</option>
+							<option value="custom">custom</option>
 						</select>
 					</label>
 					<label class="field">
