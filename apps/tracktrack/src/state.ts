@@ -112,7 +112,7 @@ export function restorePrefs(): void {
 	theme.value = loadPref<Theme>('theme', 'dark')
 	accent.value = loadPref<Accent>('accent', 'violet')
 	density.value = loadPref<Density>('density', 'comfortable')
-	viewMode.value = loadPref<ViewMode>('viewMode', 'list')
+	setViewMode(loadPref<ViewMode>('viewMode', 'list'))
 	activeScopeId.value = loadPref<string>('scope', '')
 	activeProjectId.value = loadPref<string>('project', '')
 	translateLanguage.value = loadPref<string>('translateLanguage', DEFAULT_TRANSLATE_LANGUAGE)
@@ -144,7 +144,28 @@ export function setDensity(value: Density): void {
 	applyPrefsToDocument()
 }
 
+/** True while the Planning tab's implicit "unassessed" status filter is applied. */
+let planningStatusesDefault = false
+
+/**
+ * The Planning tab opens on untriaged work: tasks whose implementation status is
+ * still "unassessed". Leaving it drops that implicit filter unless the user (or a
+ * saved view) has set the status filter themselves.
+ */
+function applyViewModeDefault(next: ViewMode, prev: ViewMode): void {
+	if (next === prev) return
+	if (prev === 'planning' && planningStatusesDefault && !activeViewId.value) {
+		filters.value = { ...filters.value, planningStatuses: [] }
+		planningStatusesDefault = false
+	}
+	if (next === 'planning' && !activeViewId.value && filters.value.planningStatuses.length === 0) {
+		filters.value = { ...filters.value, planningStatuses: ['unassessed'] }
+		planningStatusesDefault = true
+	}
+}
+
 export function setViewMode(value: ViewMode): void {
+	applyViewModeDefault(value, viewMode.value)
 	viewMode.value = value
 	savePref('viewMode', value)
 }
@@ -293,6 +314,7 @@ export function isFilterActive(value: Filters): boolean {
 }
 
 export function clearFilters(): void {
+	planningStatusesDefault = false
 	filters.value = {
 		search: '',
 		states: [],
@@ -306,6 +328,7 @@ export function clearFilters(): void {
 }
 
 export function setFilter<K extends keyof Filters>(key: K, value: Filters[K]): void {
+	if (key === 'planningStatuses') planningStatusesDefault = false
 	filters.value = { ...filters.value, [key]: value }
 	activeViewId.value = null
 }
