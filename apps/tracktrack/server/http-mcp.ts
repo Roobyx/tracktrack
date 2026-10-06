@@ -2,13 +2,13 @@ import { createServer, type ServerResponse } from 'node:http'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { initStorage } from '@m2/track-service/src/storage/index'
-import { config as loadEnv } from 'dotenv'
+import { loadTrackTrackEnv } from './env-file'
 import { handleMcp } from './routes'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const workspaceRoot = resolve(__dirname, '../../..')
 
-const envResult = loadEnv({ path: resolve(workspaceRoot, '.env') })
+const envResult = loadTrackTrackEnv(workspaceRoot)
 if (envResult.error) {
 	console.error('[tracktrack-mcp] Failed to load root .env:', envResult.error)
 }

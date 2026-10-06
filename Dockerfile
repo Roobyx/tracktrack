@@ -31,8 +31,10 @@ RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
 # ── source: full repository (dev clutter is trimmed via .dockerignore) ──────
 FROM deps AS source
 COPY . .
-# Runtime services receive configuration via environment variables, not files;
-# create an empty .env so dotenv/config loaders stay quiet inside containers.
+# Runtime services receive configuration via environment variables (compose or
+# Portainer). Create empty .env placeholders so dotenv/config loaders stay
+# quiet; ownership is fixed in the runtime stage so the GUI can persist
+# settings (TRACKTRACK_ENV_FILE, default /data/.env on the data volume).
 RUN touch /app/.env
 
 # ── tracktrack-runtime: Node supervisor running API + web GUI + MCP HTTP ────
@@ -43,7 +45,9 @@ ENV NODE_ENV=production \
     TRACKTRACK_DATA_DIR=/data
 RUN mkdir -p /data \
     && chown -R node:node /data \
-    && ln -s /data/.tracktrack-bootstrap /app/apps/tracktrack/.tracktrack-bootstrap
+    && ln -s /data/.tracktrack-bootstrap /app/apps/tracktrack/.tracktrack-bootstrap \
+    && touch /app/.env /data/.env \
+    && chown node:node /app/.env /data/.env
 USER node
 WORKDIR /app/apps/tracktrack
 EXPOSE 4356 4357 4358

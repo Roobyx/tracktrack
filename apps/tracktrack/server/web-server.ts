@@ -1,14 +1,14 @@
 import { createServer, type ServerResponse } from 'node:http'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { config as loadEnv } from 'dotenv'
 import { proxyTrackTrackRequest } from './api-proxy'
+import { loadTrackTrackEnv } from './env-file'
 import { serveStaticDist, writeStaticResult } from './static-web'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const workspaceRoot = resolve(__dirname, '../../..')
 
-const envResult = loadEnv({ path: resolve(workspaceRoot, '.env') })
+const envResult = loadTrackTrackEnv(workspaceRoot)
 if (envResult.error) {
 	console.error('[tracktrack-web] Failed to load root .env:', envResult.error)
 }

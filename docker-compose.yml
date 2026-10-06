@@ -58,6 +58,10 @@ services:
       TRACKTRACK_MCP: ${TRACKTRACK_MCP:-true}
       TRACKTRACK_STORAGE: ${TRACKTRACK_STORAGE:-sqlite}
       TRACKTRACK_DATA_DIR: /data
+      # Where the GUI persists settings (provider keys, assess model, custom
+      # endpoint). Defaults to /data/.env so they live on the data volume and
+      # survive container recreation; non-empty Portainer env vars still win.
+      TRACKTRACK_ENV_FILE: ${TRACKTRACK_ENV_FILE:-/data/.env}
       TRACKTRACK_BACKUP_TO_S3: ${TRACKTRACK_BACKUP_TO_S3:-false}
       TRACKTRACK_BACKUP_INTERVAL_MS: ${TRACKTRACK_BACKUP_INTERVAL_MS:-15000}
       TRACKTRACK_ASSESS_MODEL: ${TRACKTRACK_ASSESS_MODEL:-}

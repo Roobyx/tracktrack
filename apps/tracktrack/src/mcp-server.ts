@@ -1,13 +1,13 @@
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { login as svcLogin } from '@m2/track-service/src/auth'
-import { config as loadEnv } from 'dotenv'
+import { loadTrackTrackEnv } from '../server/env-file.ts'
 import { type AuthState, handleJsonRpc } from '../server/mcp-handler.ts'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const workspaceRoot = resolve(__dirname, '../..')
 
-const envResult = loadEnv({ path: resolve(workspaceRoot, '.env') })
+const envResult = loadTrackTrackEnv(workspaceRoot)
 if (envResult.error) {
 	console.error('[mcp] Failed to load .env:', envResult.error)
 } else {

@@ -8,11 +8,11 @@ import {
 	setStorageAdapter,
 } from '@m2/track-service/src/storage/index'
 import type { Board, Scope, Session, Task, User, View } from '@m2/track-service/src/types'
-import { config as loadEnv } from 'dotenv'
+import { loadTrackTrackEnv } from './env-file'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const workspaceRoot = resolve(__dirname, '../../..')
-loadEnv({ path: resolve(workspaceRoot, '.env') })
+loadTrackTrackEnv(workspaceRoot)
 
 const source: StorageAdapter = new S3StorageAdapter()
 const target: StorageAdapter = new SqliteStorageAdapter('tracktrack.sqlite')

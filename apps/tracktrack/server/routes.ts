@@ -126,6 +126,7 @@ import {
 	translateJobToSummary,
 	translateSingleTask,
 } from './ai-translate'
+import { resolveEnvFilePath } from './env-file'
 import { type AuthState, handleJsonRpc } from './mcp-handler.js'
 
 export const BOOTSTRAP_ADMIN_NAME = 'admin'
@@ -1664,7 +1665,7 @@ type AiProvider = (typeof AI_PROVIDERS)[number]
 
 const __routesDirname = dirname(fileURLToPath(import.meta.url))
 const WORKSPACE_ROOT = resolve(__routesDirname, '../../..')
-const ENV_FILE_PATH = resolve(WORKSPACE_ROOT, '.env')
+const ENV_FILE_PATH = resolveEnvFilePath(WORKSPACE_ROOT)
 
 function aiKeyName(provider: AiProvider): string {
 	return providerApiKeyEnvVar(provider)

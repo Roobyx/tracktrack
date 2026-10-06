@@ -9,12 +9,12 @@ import {
 	updateUser,
 } from '@m2/track-service/src/auth'
 import { initStorage } from '@m2/track-service/src/storage/index'
-import { config as loadEnv } from 'dotenv'
+import { loadTrackTrackEnv } from './env-file'
 import { BOOTSTRAP_ADMIN_NAME, bootstrapFilePath, generateBootstrapPin } from './routes'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const workspaceRoot = resolve(__dirname, '../../..')
-loadEnv({ path: resolve(workspaceRoot, '.env') })
+loadTrackTrackEnv(workspaceRoot)
 
 const MIN_PIN_LENGTH = 6
 

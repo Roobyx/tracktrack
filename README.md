@@ -140,8 +140,12 @@ OmniRoute instance, llama.cpp, vLLM, LM Studio, and so on. Set
 `TRACKTRACK_CUSTOM_BASE_URL` to the base URL (`https://host/v1`); the
 `/chat/completions` path is appended automatically, but a full URL is accepted
 too. An admin can also set the base URL, model and key from
-**Settings → AI keys / Custom endpoint**, which persists them to the repo-root
-`.env`. Model resolution order is: request `model` → `TRACKTRACK_CUSTOM_MODEL`
+**Settings → AI keys / Custom endpoint**, which persists them to the settings
+`.env` (env var `TRACKTRACK_ENV_FILE`, default the repo-root `.env`). Containers
+default to `/data/.env` on the `tracktrack_data` volume, so GUI-saved settings
+survive container recreation. A non-empty environment variable (for example one
+set in the Portainer stack editor) always takes precedence over the saved value.
+Model resolution order is: request `model` → `TRACKTRACK_CUSTOM_MODEL`
 (custom only) → `TRACKTRACK_ASSESS_MODEL` → provider default. No provider key
 ever reaches the client.
 
@@ -157,7 +161,9 @@ docker compose --profile bucket up -d
 
 For Portainer, create a stack from this GitHub repository using
 `docker-compose.yml`, then paste the `.env` contents into the stack's
-environment-variable editor and deploy.
+environment-variable editor and deploy. Settings saved from the GUI persist to
+`/data/.env` on the `tracktrack_data` volume; non-empty stack environment
+variables still take precedence.
 
 ## Authentication
 

@@ -12,15 +12,15 @@ import {
 	migrateLegacyTaskLists,
 	type StorageExport,
 } from '@m2/track-service/src/storage/index'
-import { config as loadEnv } from 'dotenv'
+import { loadTrackTrackEnv, resolveEnvFilePath } from './env-file'
 import { handleApiRequest, runBootstrap } from './routes'
 import { serveStaticDist, writeStaticResult } from './static-web'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const workspaceRoot = resolve(__dirname, '../../..')
 
-const envPath = resolve(workspaceRoot, '.env')
-const envResult = loadEnv({ path: envPath })
+const envPath = resolveEnvFilePath(workspaceRoot)
+const envResult = loadTrackTrackEnv(workspaceRoot)
 if (envResult.error) {
 	console.error('[tracktrack] Failed to load root .env:', envResult.error)
 } else {
