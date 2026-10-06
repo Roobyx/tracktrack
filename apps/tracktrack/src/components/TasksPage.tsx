@@ -7,7 +7,6 @@ import {
 	activeScopeId,
 	assessDialog,
 	assessFocusTaskId,
-	assessJob,
 	boards,
 	error,
 	filters,
@@ -25,21 +24,18 @@ import {
 	selectedTask,
 	selection,
 	serverUnreachable,
-	splitJob,
 	tasks,
 	toast,
 	viewMode,
 	views as viewsState,
 } from '../state'
 import { AssessDialog } from './AssessDialog'
-import { AssessJobPanel } from './AssessJobPanel'
 import { BoardView } from './BoardView'
 import { KnowledgeSplitDialog } from './KnowledgeSplitDialog'
 import { ListView } from './ListView'
 import { NewScopeForm } from './NewScope'
 import { OverviewView } from './OverviewView'
 import { PlanningView } from './PlanningView'
-import { SplitJobPanel } from './SplitJobPanel'
 import { TaskDrawer } from './TaskDrawer'
 import { Toolbar } from './Toolbar'
 
@@ -292,9 +288,6 @@ export function TasksPage() {
 			</div>`
 			}
 			${error.value && html`<div class="banner banner-error banner-full">${error.value}</div>`}
-
-			${assessJob.value && html`<${AssessJobPanel} onRefresh=${loadTasks} />`}
-		${splitJob.value && html`<${SplitJobPanel} onRefresh=${loadTasks} />`}
 
 			<div class="tasks-content ${isListView ? 'tasks-content-split' : ''}">
 				${

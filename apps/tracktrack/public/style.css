@@ -2228,6 +2228,20 @@ kbd {
 
 /* ---------- assessment job panel ---------- */
 
+/* Corner stack for long-running AI jobs, visible on any page and above dialogs. */
+.job-notifications {
+	position: fixed;
+	top: 72px;
+	right: 18px;
+	z-index: 120;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	width: min(380px, calc(100vw - 36px));
+	max-height: calc(100vh - 90px);
+	overflow: auto;
+}
+
 .job-panel {
 	margin: 10px 16px 0;
 	background: var(--panel);
@@ -2237,6 +2251,12 @@ kbd {
 	display: flex;
 	flex-direction: column;
 	gap: 8px;
+}
+
+.job-notifications .job-panel {
+	margin: 0;
+	background: var(--panel-2);
+	box-shadow: var(--shadow);
 }
 
 .job-panel.running {

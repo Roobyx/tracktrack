@@ -1,13 +1,16 @@
 import { html } from 'htm/preact'
 import { useEffect, useState } from 'preact/hooks'
+import { AssessJobPanel } from './components/AssessJobPanel'
 import { LoginScreen } from './components/LoginScreen'
 import { NewScopeDialog } from './components/NewScope'
 import { ProjectsPage } from './components/ProjectsPage'
 import { SettingsPage } from './components/SettingsPage'
+import { SplitJobPanel } from './components/SplitJobPanel'
 import { TasksPage } from './components/TasksPage'
 import {
 	activeProjectId,
 	activeScopeId,
+	assessJob,
 	currentUser,
 	exitToProjects,
 	getActiveProject,
@@ -16,6 +19,7 @@ import {
 	scopes,
 	setTheme,
 	setViewMode,
+	splitJob,
 	theme,
 	toasts,
 	type ViewMode,
@@ -31,6 +35,11 @@ const VIEW_TABS: Array<{ mode: ViewMode; label: string }> = [
 
 /** Sentinel option value in the scope dropdown that opens the create dialog. */
 const NEW_SCOPE_OPTION = '__new__'
+
+/** Refreshes the task list from anywhere via the existing app-level event. */
+function refreshTasks(): void {
+	window.dispatchEvent(new CustomEvent('tt:refresh-tasks'))
+}
 
 export function App() {
 	const [showShortcuts, setShowShortcuts] = useState(false)
@@ -213,6 +222,11 @@ export function App() {
 				${toasts.value.map(
 					(t) => html`<div class="toast toast-${t.tone}" key=${t.id}>${t.message}</div>`,
 				)}
+			</div>
+
+			<div class="job-notifications" role="status" aria-live="polite">
+				${assessJob.value && html`<${AssessJobPanel} onRefresh=${refreshTasks} />`}
+				${splitJob.value && html`<${SplitJobPanel} onRefresh=${refreshTasks} />`}
 			</div>
 		</div>
 	`
