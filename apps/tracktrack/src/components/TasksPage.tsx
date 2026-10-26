@@ -86,9 +86,9 @@ export function TasksPage() {
 			for (const state of f.states) params.push(['state', state])
 			for (const priority of f.priorities) params.push(['priority', priority])
 			for (const tag of f.tags) params.push(['tag', tag])
+			for (const tag of f.excludeTags) params.push(['excludeTag', tag])
 			if (f.search.trim()) params.push(['search', f.search.trim()])
 			if (f.assignee.trim()) params.push(['assignee', f.assignee.trim()])
-			for (const status of f.planningStatuses) params.push(['planningStatus', status])
 			if (f.assessed) params.push(['assessed', f.assessed])
 			if (activeBoardId.value === 'none') params.push(['board', 'none'])
 			else if (activeBoardId.value !== 'all') params.push(['board', activeBoardId.value])
@@ -274,12 +274,13 @@ export function TasksPage() {
 
 	return html`
 		<div class="tasks-page">
-			<${Toolbar}
-				scope=${scope}
-				filterActive=${filterActive}
-				onNewTask=${handleNewTask}
-				onRefresh=${loadTasks}
-			/>
+<${Toolbar}
+					scope=${scope}
+					tasks=${tasks.value}
+					filterActive=${filterActive}
+					onNewTask=${handleNewTask}
+					onRefresh=${loadTasks}
+				/>
 
 			${
 				serverUnreachable.value &&

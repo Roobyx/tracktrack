@@ -20,8 +20,8 @@ export type Filters = {
 	states: string[]
 	priorities: string[]
 	tags: string[]
+	excludeTags: string[]
 	assignee: string
-	planningStatuses: string[]
 	assessed: '' | 'yes' | 'no'
 }
 
@@ -60,8 +60,8 @@ export const filters = signal<Filters>({
 	states: [],
 	priorities: [],
 	tags: [],
+	excludeTags: [],
 	assignee: '',
-	planningStatuses: [],
 	assessed: '',
 })
 
@@ -144,22 +144,22 @@ export function setDensity(value: Density): void {
 	applyPrefsToDocument()
 }
 
-/** True while the Planning tab's implicit "unassessed" status filter is applied. */
+/** True while the Planning tab's implicit "unassessed" filter is applied. */
 let planningStatusesDefault = false
 
 /**
- * The Planning tab opens on untriaged work: tasks whose implementation status is
- * still "unassessed". Leaving it drops that implicit filter unless the user (or a
- * saved view) has set the status filter themselves.
+ * The Planning tab opens on untriaged work: tasks that have not been assessed
+ * yet. Leaving it drops that implicit filter unless the user (or a saved view)
+ * has set the assessed filter themselves.
  */
 function applyViewModeDefault(next: ViewMode, prev: ViewMode): void {
 	if (next === prev) return
 	if (prev === 'planning' && planningStatusesDefault && !activeViewId.value) {
-		filters.value = { ...filters.value, planningStatuses: [] }
+		filters.value = { ...filters.value, assessed: '' }
 		planningStatusesDefault = false
 	}
-	if (next === 'planning' && !activeViewId.value && filters.value.planningStatuses.length === 0) {
-		filters.value = { ...filters.value, planningStatuses: ['unassessed'] }
+	if (next === 'planning' && !activeViewId.value && filters.value.assessed === '') {
+		filters.value = { ...filters.value, assessed: 'no', states: ['todo'] }
 		planningStatusesDefault = true
 	}
 }
@@ -282,8 +282,8 @@ export function viewToFilters(view: View): Filters {
 		states: view.filter.states ?? [],
 		priorities: view.filter.priorities ?? [],
 		tags: view.filter.tags ?? [],
+		excludeTags: view.filter.excludeTags ?? [],
 		assignee: view.filter.assignee ?? '',
-		planningStatuses: view.filter.planningStatus ?? [],
 		assessed:
 			view.filter.assessed === true ? 'yes' : view.filter.assessed === false ? 'no' : '',
 	}
@@ -294,9 +294,9 @@ export function filtersToViewFilter(value: Filters) {
 		states: value.states.length > 0 ? value.states : undefined,
 		priorities: value.priorities.length > 0 ? value.priorities : undefined,
 		tags: value.tags.length > 0 ? value.tags : undefined,
+		excludeTags: value.excludeTags.length > 0 ? value.excludeTags : undefined,
 		search: value.search || undefined,
 		assignee: value.assignee || undefined,
-		planningStatus: value.planningStatuses.length > 0 ? value.planningStatuses : undefined,
 		assessed: value.assessed === '' ? undefined : value.assessed === 'yes',
 	}
 }
@@ -307,8 +307,8 @@ export function isFilterActive(value: Filters): boolean {
 			value.states.length > 0 ||
 			value.priorities.length > 0 ||
 			value.tags.length > 0 ||
+			value.excludeTags.length > 0 ||
 			value.assignee ||
-			value.planningStatuses.length > 0 ||
 			value.assessed,
 	)
 }
@@ -320,15 +320,14 @@ export function clearFilters(): void {
 		states: [],
 		priorities: [],
 		tags: [],
+		excludeTags: [],
 		assignee: '',
-		planningStatuses: [],
 		assessed: '',
 	}
 	activeViewId.value = null
 }
 
 export function setFilter<K extends keyof Filters>(key: K, value: Filters[K]): void {
-	if (key === 'planningStatuses') planningStatusesDefault = false
 	filters.value = { ...filters.value, [key]: value }
 	activeViewId.value = null
 }

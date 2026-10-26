@@ -1,4 +1,4 @@
-import type { Task } from '@m2/track-service/src/types'
+import type { PlanningStatus, Task } from '@m2/track-service/src/types'
 import { html } from 'htm/preact'
 import { useEffect, useState } from 'preact/hooks'
 import { api } from '../api/client'
@@ -207,6 +207,71 @@ function TaskReadView({ task, boards }: { task: Task; boards: import('../api/cli
 							title=${`Assessed by ${assessment.provider}/${assessment.model} (prompt v${assessment.promptVersion})`}
 						>${assessment.model} · ${formatRelativeTime(assessment.assessedAt)}</span>`
 						}
+						${html`<div class="impl-status-setter">
+								<select
+									class="input input-sm"
+									value=${planning.implementationStatus ?? ''}
+									onChange=${(e: Event) => {
+										const v = (e.target as HTMLSelectElement).value || null
+										const scopeId = task.scopeId
+										if (!scopeId) return
+										const prev = planning.implementationStatus
+										const nextStatus = v === '' ? null : (v as PlanningStatus)
+										const nextPlanning = {
+											...planning,
+											implementationStatus: nextStatus,
+										}
+										const updated = {
+											...task,
+											planning: nextPlanning,
+											updatedAt: new Date().toISOString(),
+										}
+										// optimistic update
+										tasksState.value = tasksState.value.map((t) =>
+											t.id === task.id ? updated : t,
+										)
+										selectedTask.value = updated
+										api.updateTask(scopeId, task.id, {
+											planning: { implementationStatus: nextStatus },
+										})
+											.then((saved) => {
+												tasksState.value = tasksState.value.map((t) =>
+													t.id === saved.id ? saved : t,
+												)
+												selectedTask.value = saved
+											})
+											.catch((err) => {
+												tasksState.value = tasksState.value.map((t) =>
+													t.id === task.id
+														? {
+																...t,
+																planning: {
+																	...t.planning,
+																	implementationStatus: prev,
+																},
+															}
+														: t,
+												)
+												selectedTask.value = {
+													...task,
+													planning: {
+														...planning,
+														implementationStatus: prev,
+													},
+												}
+												reportError(
+													'Failed to save implementation status',
+													err,
+												)
+											})
+									}}
+								>
+									<option value="">— unset</option>
+									<option value="must">Must</option>
+									<option value="maybe">Maybe</option>
+									<option value="rejected">Rejected</option>
+								</select>
+							</div>`}
 					</div>
 					<div class="detail-pills">
 						<span class=${implementationStatusClass(planning.implementationStatus)}>

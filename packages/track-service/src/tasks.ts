@@ -42,6 +42,7 @@ export function hasActiveFilter(filter: TaskFilter): boolean {
 		(filter.states?.length ?? 0) > 0 ||
 		(filter.priorities?.length ?? 0) > 0 ||
 		(filter.tags?.length ?? 0) > 0 ||
+		(filter.excludeTags?.length ?? 0) > 0 ||
 		Boolean(filter.search) ||
 		Boolean(filter.assignee) ||
 		(filter.boards?.length ?? 0) > 0 ||
@@ -341,6 +342,12 @@ function applyTaskFilter(tasks: Task[], filter: TaskFilter, boards: Board[]): Ta
 			filter.tags &&
 			filter.tags.length > 0 &&
 			!filter.tags.some((t) => task.tags.includes(t))
+		)
+			return false
+		if (
+			filter.excludeTags &&
+			filter.excludeTags.length > 0 &&
+			filter.excludeTags.some((t) => task.tags.includes(t))
 		)
 			return false
 		if (filter.planningStatus && filter.planningStatus.length > 0) {

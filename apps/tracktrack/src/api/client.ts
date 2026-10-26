@@ -37,6 +37,7 @@ export type ViewFilter = {
 	states?: string[]
 	priorities?: string[]
 	tags?: string[]
+	excludeTags?: string[]
 	search?: string
 	assignee?: string
 	planningStatus?: string[]

@@ -5,6 +5,7 @@ import { api } from '../api/client'
 import {
 	assessDialog,
 	assessFocusTaskId,
+	filters,
 	getActiveScope,
 	knowledgeSplitDialog,
 	reportError,
@@ -57,7 +58,7 @@ export function PlanningView() {
 		[],
 	)
 
-	const visibleRows = useMemo(() => {
+	const sortedRows = useMemo(() => {
 		const rows = [...list]
 		const direction = sortAsc ? 1 : -1
 		rows.sort((a, b) => {
@@ -110,6 +111,18 @@ export function PlanningView() {
 		})
 		return rows
 	}, [list, sortKey, sortAsc])
+
+	const visibleRows = useMemo(() => {
+		let rows = [...sortedRows]
+		const f = filters.value
+		if (f.tags.length > 0) {
+			rows = rows.filter((t) => f.tags.every((tag) => t.tags.includes(tag)))
+		}
+		if (f.excludeTags.length > 0) {
+			rows = rows.filter((t) => !f.excludeTags.some((tag) => t.tags.includes(tag)))
+		}
+		return rows
+	}, [sortedRows, filters.value.tags, filters.value.excludeTags])
 
 	const selectedIds = useMemo(
 		() => visibleRows.filter((t) => selection.value.has(t.id)).map((t) => t.id),
@@ -441,20 +454,26 @@ export function PlanningView() {
 									</span>`
 									}
 								</td>
-									<td>
-										<select
-											class=${`planning-select ${implementationStatusClass(status)}`}
-											value=${status ?? ''}
-											onChange=${(e: Event) =>
-												void savePlanningField(
-													task,
-													'implementationStatus',
-													(e.target as HTMLSelectElement).value || null,
-												)}
-										>
-											<option value="">—</option>
-											${['must', 'maybe', 'rejected'].map((s) => html`<option value=${s} key=${s}>${s}</option>`)}
-										</select>
+									<td class="col-status">
+										<div class="status-pills">
+											${['must', 'maybe', 'rejected'].map((s) => {
+												const active = status === s
+												return html`
+													<button
+														class=${`status-pill ${implementationStatusClass(s)} ${active ? 'active' : ''}`}
+														onClick=${(e: Event) => {
+															e.stopPropagation()
+															const next = active ? null : s
+															void savePlanningField(
+																task,
+																'implementationStatus',
+																next,
+															)
+														}}
+													>${s}</button>
+												`
+											})}
+										</div>
 									</td>
 									<td class="col-bool">
 										<input

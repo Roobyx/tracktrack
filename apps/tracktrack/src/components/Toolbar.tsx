@@ -27,8 +27,8 @@ function countActive(f: Filters): number {
 		(f.states.length > 0 ? 1 : 0) +
 		(f.priorities.length > 0 ? 1 : 0) +
 		(f.tags.length > 0 ? 1 : 0) +
+		(f.excludeTags.length > 0 ? 1 : 0) +
 		(f.assignee ? 1 : 0) +
-		(f.planningStatuses.length > 0 ? 1 : 0) +
 		(f.assessed ? 1 : 0)
 	)
 }
@@ -38,23 +38,25 @@ const EMPTY_FILTERS = {
 	states: [],
 	priorities: [],
 	tags: [],
+	excludeTags: [],
 	assignee: '',
-	planningStatuses: [],
 	assessed: '' as '' | 'yes' | 'no',
 }
 
 export function Toolbar({
 	scope,
+	tasks,
 	onNewTask,
 	onRefresh,
 }: {
 	scope: Scope | undefined
+	tasks: import('@m2/track-service/src/types').Task[]
 	onNewTask: () => void
 	onRefresh: () => void
 }) {
 	const [openMenu, setOpenMenu] = useState<MenuKey>(null)
 
-	const allTags = [...new Set([...(scope?.defaultTags ?? []), ...filters.value.tags])].sort()
+	const allTags = [...new Set(tasks.flatMap((t) => t.tags))].sort()
 	const activeCount = countActive(filters.value)
 	useEffect(() => {
 		if (!openMenu) return
@@ -78,7 +80,7 @@ export function Toolbar({
 	}
 
 	function toggleArrayFilter(
-		key: 'states' | 'priorities' | 'tags' | 'planningStatuses',
+		key: 'states' | 'priorities' | 'tags' | 'excludeTags',
 		value: string,
 	) {
 		const prev = filters.value[key]
@@ -157,21 +159,12 @@ export function Toolbar({
 						/>
 					</div>
 					<div class="menu-section">
-						<span class="menu-label">Implementation status</span>
-						<div class="menu-checks">
-							${['must', 'maybe', 'rejected', 'unassessed'].map(
-								(status) => html`
-									<label class="check-item" key=${status}>
-										<input
-											type="checkbox"
-											checked=${filters.value.planningStatuses.includes(status)}
-											onChange=${() => toggleArrayFilter('planningStatuses', status)}
-										/>
-										<span>${status}</span>
-									</label>
-								`,
-							)}
-						</div>
+						<span class="menu-label">Exclude tags</span>
+						<${CheckList}
+							options=${allTags}
+							selected=${filters.value.excludeTags}
+							onToggle=${(value: string) => toggleArrayFilter('excludeTags', value)}
+						/>
 					</div>
 					<div class="menu-section">
 						<span class="menu-label">Assessed</span>
@@ -184,16 +177,16 @@ export function Toolbar({
 					${
 						activeCount > 0 &&
 						html`
-						<button
-							class="menu-item menu-item-accent"
-							onClick=${() => {
-								clearFilters()
-								toast('info', 'Filters cleared')
-							}}
-						>
-							Clear all filters
-						</button>
-					`
+							<button
+								class="menu-item menu-item-accent"
+								onClick=${() => {
+									clearFilters()
+									toast('info', 'Filters cleared')
+								}}
+							>
+								Clear all filters
+							</button>
+						`
 					}
 				<//>
 

@@ -964,6 +964,7 @@ async function handleTasks(
 				states: url.searchParams.getAll('state'),
 				priorities: url.searchParams.getAll('priority'),
 				tags: url.searchParams.getAll('tag'),
+				excludeTags: url.searchParams.getAll('excludeTag'),
 				search: url.searchParams.get('search') ?? undefined,
 				assignee: url.searchParams.get('assignee') ?? undefined,
 				boards: boardParams.length > 0 ? boardParams : undefined,

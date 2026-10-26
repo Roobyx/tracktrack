@@ -1404,6 +1404,40 @@ textarea.input {
 	cursor: pointer;
 }
 
+.col-status {
+	white-space: nowrap;
+}
+
+.status-pills {
+	display: inline-flex;
+	gap: 2px;
+}
+
+.status-pill {
+	display: inline-flex;
+	align-items: center;
+	font-size: 11px;
+	font-weight: 700;
+	padding: 2px 8px;
+	border-radius: 999px;
+	border: 1px solid var(--border);
+	cursor: pointer;
+	transition: opacity 0.15s ease;
+}
+
+.status-pill:hover {
+	opacity: 0.85;
+}
+
+.status-pill.active {
+	outline: 2px solid var(--accent);
+	outline-offset: -1px;
+}
+
+.status-pill:not(.active) {
+	opacity: 0.45;
+}
+
 .planning-select {
 	appearance: none;
 	font: inherit;
@@ -2041,6 +2075,15 @@ kbd {
 
 .detail-section-head h5 {
 	margin: 0;
+}
+
+.impl-status-setter {
+	display: flex;
+	align-items: center;
+}
+
+.impl-status-setter select {
+	min-width: 120px;
 }
 
 .detail-pills {
