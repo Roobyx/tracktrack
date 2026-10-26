@@ -234,7 +234,9 @@ export async function bootstrapProjects(): Promise<void> {
 export function enterProject(projectId: string): void {
 	activeProjectId.value = projectId
 	savePref('project', projectId)
+	const rememberedScope = activeScopeId.value
 	clearScopedState()
+	activeScopeId.value = rememberedScope
 	page.value = 'tasks'
 }
 
