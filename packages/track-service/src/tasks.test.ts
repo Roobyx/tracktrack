@@ -202,6 +202,17 @@ for (const backend of backends) {
 			expect(first.etag).toBeTruthy()
 		})
 
+		it('search matches the task number and formatted number', async () => {
+			const task = await createTaskWithNumber('void', { title: 'numbered' }, 'user-1')
+			expect(
+				(await searchTasks('void', { search: String(task.number) })).map((t) => t.id),
+			).toEqual([task.id])
+			expect(
+				(await searchTasks('void', { search: `VO-${task.number}` })).map((t) => t.id),
+			).toEqual([task.id])
+			expect(await searchTasks('void', { search: String(task.number + 1) })).toEqual([])
+		})
+
 		it('treats tasks whose board was deleted as Inbox-orphaned', async () => {
 			const board = await createBoard('void', { name: 'Temp' }, 'user-1')
 			await createTaskWithNumber('void', { title: 'in-board', boardId: board.id }, 'user-1')

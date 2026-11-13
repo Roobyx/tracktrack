@@ -113,11 +113,13 @@ export function TaskDrawer({
 				title=${`${getActiveScope()?.prefix ?? ''}-${task.number} ${mode === 'edit' ? '· editing' : ''}`}
 				onClose=${dismiss}
 				showClose=${!inline}
-			/>
+			>
+				${mode === 'read' && html`<${TaskHeaderBadges} task=${task as Task} boards=${boards} />`}
+			<//>
 			${
 				mode === 'read' && task.id
 					? html`
-					<${TaskReadView} task=${task as Task} boards=${boards} />
+					<${TaskReadView} task=${task as Task} />
 					<div class="drawer-actions">
 						<button class="btn" onClick=${() => setMode('edit')}>Edit</button>
 						<button class="btn" onClick=${onAssess}>⚡ Assess</button>
@@ -143,21 +145,51 @@ function DrawerHeader({
 	title,
 	onClose,
 	showClose = true,
+	children,
 }: {
 	title: string
 	onClose: () => void
 	showClose?: boolean
+	children?: unknown
 }) {
 	return html`
 		<div class="drawer-header">
 			<span class="drawer-title">${title || 'Task'}</span>
+			${children}
 			${showClose && html`<button class="icon-btn" aria-label="Close panel" onClick=${onClose}>×</button>`}
 		</div>
 	`
 }
 
-function TaskReadView({ task, boards }: { task: Task; boards: import('../api/client').Board[] }) {
+function TaskHeaderBadges({
+	task,
+	boards,
+}: {
+	task: Task
+	boards: import('../api/client').Board[]
+}) {
 	const board = task.boardId ? boards.find((b) => b.id === task.boardId) : undefined
+	const scope = getActiveScope()
+	return html`
+		<div class="drawer-header-meta">
+			<span class="state-chip" style=${stateStyle(task.state)}>${task.state}</span>
+			<span class="priority-chip" style=${priorityStyle(task.priority)}>${task.priority}</span>
+			${scope ? html`<span class="header-field" title=${`Scope: ${scope.name} (${scope.prefix})`}><span class="header-field-label">Scope</span><span class="scope-badge">${scope.name}</span></span>` : null}
+			${
+				board
+					? html`<span class="header-field" title=${`Board: ${board.name}`}><span class="header-field-label">Board</span><span class="board-badge" style=${board.color ? { '--board-color': board.color } : undefined}>${board.name}</span></span>`
+					: html`<span class="header-field" title="Board: Inbox"><span class="header-field-label">Board</span><span class="board-badge board-inbox">Inbox</span></span>`
+			}
+			${task.assignee ? html`<span class="list-assignee">@${task.assignee}</span>` : null}
+			${translatedTags(task).map((t) => {
+				const color = getTagColor(t)
+				return html`<span class="tag" key=${t} style=${{ color, background: hexToRgba(color, 0.12), borderColor: hexToRgba(color, 0.3) }}>${t}</span>`
+			})}
+		</div>
+	`
+}
+
+function TaskReadView({ task }: { task: Task }) {
 	const planning = task.planning ?? {}
 	const assessment = task.aiAssessment
 	const ve = veOf(planning.ideaRating, planning.difficultyRating)
@@ -167,23 +199,6 @@ function TaskReadView({ task, boards }: { task: Task; boards: import('../api/cli
 	return html`
 		<div class="drawer-body">
 			<h2 class="detail-title"><${TranslatedText} task=${task} field="title" class="inner" /></h2>
-			<div class="detail-meta">
-				<span class="state-chip" style=${stateStyle(task.state)}>${task.state}</span>
-				<span class="priority-chip" style=${priorityStyle(task.priority)}>${task.priority}</span>
-				${board ? html`<span class="board-badge" style=${board.color ? { '--board-color': board.color } : undefined}>${board.name}</span>` : html`<span class="board-badge board-inbox">Inbox</span>`}
-				${task.assignee ? html`<span class="list-assignee">@${task.assignee}</span>` : null}
-			</div>
-			${
-				task.tags.length > 0 &&
-				html`
-				<div class="detail-tags">
-					${translatedTags(task).map((t) => {
-						const color = getTagColor(t)
-						return html`<span class="tag" key=${t} style=${{ color, background: hexToRgba(color, 0.12), borderColor: hexToRgba(color, 0.3) }}>${t}</span>`
-					})}
-				</div>
-			`
-			}
 
 			<div class="detail-section">
 				<h5>Description</h5>

@@ -55,8 +55,13 @@ export function Toolbar({
 	onRefresh: () => void
 }) {
 	const [openMenu, setOpenMenu] = useState<MenuKey>(null)
+	const [tagSearch, setTagSearch] = useState('')
 
 	const allTags = [...new Set(tasks.flatMap((t) => t.tags))].sort()
+	const tagQuery = tagSearch.trim().toLowerCase()
+	const filteredTags = tagQuery
+		? allTags.filter((tag) => tag.toLowerCase().includes(tagQuery))
+		: allTags
 	const activeCount = countActive(filters.value)
 	useEffect(() => {
 		if (!openMenu) return
@@ -140,8 +145,17 @@ export function Toolbar({
 					active=${openMenu === 'tags'}
 					onOpen=${() => toggleMenu('tags')}
 				>
+					<div class="menu-section">
+						<input
+							class="input input-sm"
+							type="search"
+							placeholder="Search tags…"
+							value=${tagSearch}
+							onInput=${(e: Event) => setTagSearch((e.target as HTMLInputElement).value)}
+						/>
+					</div>
 					<${CheckList}
-						options=${allTags}
+						options=${filteredTags}
 						selected=${filters.value.tags}
 						onToggle=${(value: string) => toggleArrayFilter('tags', value)}
 					/>

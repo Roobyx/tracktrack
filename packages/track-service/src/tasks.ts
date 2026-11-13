@@ -1,6 +1,7 @@
 import { findBoardById, getBoards, getBoardsWithEtag } from './boards.ts'
 import { BoardNotFoundError } from './errors.ts'
 import { pruneDeletedTasks, resolvePruneAfterDays } from './maintenance.ts'
+import { parseTaskNumber } from './numbering.ts'
 import { getStorageAdapter, retryOnConflict, type WithEtag, withKeyLock } from './storage/index.ts'
 import type {
 	BatchUpdateTasksInput,
@@ -372,9 +373,14 @@ function applyTaskFilter(tasks: Task[], filter: TaskFilter, boards: Board[]): Ta
 		}
 		if (filter.search) {
 			const q = filter.search.toLowerCase()
+			const trimmed = filter.search.trim()
+			const numberQuery = /^\d+$/.test(trimmed)
+				? Number.parseInt(trimmed, 10)
+				: parseTaskNumber(trimmed)?.number
 			if (
 				!task.title.toLowerCase().includes(q) &&
-				!task.description.toLowerCase().includes(q)
+				!task.description.toLowerCase().includes(q) &&
+				numberQuery !== task.number
 			)
 				return false
 		}

@@ -292,7 +292,7 @@ export function buildTools() {
 		},
 		{
 			name: 'search_tasks',
-			description: 'Full-text search across title and description',
+			description: 'Full-text search across title, description and task number',
 			inputSchema: {
 				type: 'object',
 				properties: {
