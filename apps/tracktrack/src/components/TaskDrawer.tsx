@@ -169,17 +169,11 @@ function TaskHeaderBadges({
 	boards: import('../api/client').Board[]
 }) {
 	const board = task.boardId ? boards.find((b) => b.id === task.boardId) : undefined
-	const scope = getActiveScope()
 	return html`
 		<div class="drawer-header-meta">
 			<span class="state-chip" style=${stateStyle(task.state)}>${task.state}</span>
 			<span class="priority-chip" style=${priorityStyle(task.priority)}>${task.priority}</span>
-			${scope ? html`<span class="header-field" title=${`Scope: ${scope.name} (${scope.prefix})`}><span class="header-field-label">Scope</span><span class="scope-badge">${scope.name}</span></span>` : null}
-			${
-				board
-					? html`<span class="header-field" title=${`Board: ${board.name}`}><span class="header-field-label">Board</span><span class="board-badge" style=${board.color ? { '--board-color': board.color } : undefined}>${board.name}</span></span>`
-					: html`<span class="header-field" title="Board: Inbox"><span class="header-field-label">Board</span><span class="board-badge board-inbox">Inbox</span></span>`
-			}
+			${board ? html`<span class="board-badge" title=${`Board: ${board.name}`} style=${board.color ? { '--board-color': board.color } : undefined}>${board.name}</span>` : html`<span class="board-badge board-inbox" title="Board: Inbox">Inbox</span>`}
 			${task.assignee ? html`<span class="list-assignee">@${task.assignee}</span>` : null}
 			${translatedTags(task).map((t) => {
 				const color = getTagColor(t)

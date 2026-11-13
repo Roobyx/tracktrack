@@ -2030,17 +2030,6 @@ kbd {
 	color: var(--text-dim);
 }
 
-.scope-badge {
-	font-size: 10.5px;
-	font-weight: 700;
-	padding: 1px 7px;
-	border-radius: 999px;
-	color: var(--accent-text);
-	background: var(--accent-soft);
-	border: 1px solid var(--accent-border);
-	white-space: nowrap;
-}
-
 .drawer-title {
 	font-weight: 800;
 	font-size: 13.5px;

@@ -7,6 +7,7 @@ import { ProjectsPage } from './components/ProjectsPage'
 import { SettingsPage } from './components/SettingsPage'
 import { SplitJobPanel } from './components/SplitJobPanel'
 import { TasksPage } from './components/TasksPage'
+import { BoardMenu } from './components/Toolbar'
 import {
 	activeProjectId,
 	activeScopeId,
@@ -92,35 +93,39 @@ export function App() {
 					<span class="app-name">TrackTrack</span>
 				</div>
 
-				<select
-					class="input scope-select"
-					aria-label="Active scope"
-					value=${activeScopeId.value}
-					onInput=${(e: Event) => {
-						const el = e.target as HTMLSelectElement
-						if (el.value === NEW_SCOPE_OPTION) {
-							el.value = activeScopeId.value
-							if (isAdmin.value) setShowNewScope(true)
-							return
+				<label class="header-field" title="Active scope">
+					<span class="header-field-label">Scope</span>
+					<select
+						class="input scope-select"
+						value=${activeScopeId.value}
+						onInput=${(e: Event) => {
+							const el = e.target as HTMLSelectElement
+							if (el.value === NEW_SCOPE_OPTION) {
+								el.value = activeScopeId.value
+								if (isAdmin.value) setShowNewScope(true)
+								return
+							}
+							activeScopeId.value = el.value
+							window.dispatchEvent(new CustomEvent('tt:scope-changed'))
+						}}
+					>
+						${
+							scopes.value.length === 0
+								? html`<option value="" disabled>No scopes</option>`
+								: scopes.value.map(
+										(s) =>
+											html`<option value=${s.id} key=${s.id}>${s.name}</option>`,
+									)
 						}
-						activeScopeId.value = el.value
-						window.dispatchEvent(new CustomEvent('tt:scope-changed'))
-					}}
-				>
-					${
-						scopes.value.length === 0
-							? html`<option value="" disabled>No scopes</option>`
-							: scopes.value.map(
-									(s) =>
-										html`<option value=${s.id} key=${s.id}>${s.name}</option>`,
-								)
-					}
-					${
-						isAdmin.value && activeProjectId.value
-							? html`<option value=${NEW_SCOPE_OPTION}>+ New scope</option>`
-							: null
-					}
-				</select>
+						${
+							isAdmin.value && activeProjectId.value
+								? html`<option value=${NEW_SCOPE_OPTION}>+ New scope</option>`
+								: null
+						}
+					</select>
+				</label>
+
+				<${BoardMenu} />
 
 				<button
 					class="project-chip"
@@ -128,6 +133,7 @@ export function App() {
 					onClick=${exitToProjects}
 				>
 					<span class="project-chip-dot" aria-hidden="true"></span>
+					<span class="header-field-label">Project</span>
 					${getActiveProject()?.name ?? 'Projects'}
 				</button>
 

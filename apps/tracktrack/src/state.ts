@@ -232,11 +232,14 @@ export async function bootstrapProjects(): Promise<void> {
 }
 
 export function enterProject(projectId: string): void {
+	const changed = projectId !== activeProjectId.value
 	activeProjectId.value = projectId
 	savePref('project', projectId)
-	const rememberedScope = activeScopeId.value
-	clearScopedState()
-	activeScopeId.value = rememberedScope
+	if (changed) {
+		const rememberedScope = activeScopeId.value
+		clearScopedState()
+		activeScopeId.value = rememberedScope
+	}
 	page.value = 'tasks'
 }
 

@@ -20,7 +20,7 @@ import {
 } from '../state'
 import { getPriorityColor, getStateColor } from '../utils'
 
-type MenuKey = 'states' | 'priorities' | 'tags' | 'more' | 'boards' | 'views' | null
+type MenuKey = 'states' | 'priorities' | 'tags' | 'more' | 'views' | null
 
 function countActive(f: Filters): number {
 	return (
@@ -67,7 +67,7 @@ export function Toolbar({
 		if (!openMenu) return
 		const onDocClick = (e: MouseEvent) => {
 			const target = e.target as HTMLElement
-			if (!target.closest('.filter-menu-wrap')) setOpenMenu(null)
+			if (!target.closest('.toolbar .filter-menu-wrap')) setOpenMenu(null)
 		}
 		const onEsc = (e: KeyboardEvent) => {
 			if (e.key === 'Escape') setOpenMenu(null)
@@ -206,7 +206,6 @@ export function Toolbar({
 
 				<div class="toolbar-spacer"></div>
 
-				<${BoardMenu} open=${openMenu === 'boards'} onToggle=${() => toggleMenu('boards')} />
 				<${ViewsMenu} open=${openMenu === 'views'} onToggle=${() => toggleMenu('views')} />
 
 				<button
@@ -280,7 +279,8 @@ function CheckList({
 	`
 }
 
-function BoardMenu({ open, onToggle }: { open: boolean; onToggle: () => void }) {
+export function BoardMenu() {
+	const [open, setOpen] = useState(false)
 	const activeBoard =
 		activeBoardId.value === 'all' || activeBoardId.value === 'none'
 			? null
@@ -292,10 +292,27 @@ function BoardMenu({ open, onToggle }: { open: boolean; onToggle: () => void }) 
 				? 'Inbox'
 				: (activeBoard?.name ?? 'Boards')
 
+	useEffect(() => {
+		if (!open) return
+		const onDocClick = (e: MouseEvent) => {
+			const target = e.target as HTMLElement
+			if (!target.closest('.board-menu-wrap')) setOpen(false)
+		}
+		const onEsc = (e: KeyboardEvent) => {
+			if (e.key === 'Escape') setOpen(false)
+		}
+		document.addEventListener('click', onDocClick)
+		document.addEventListener('keydown', onEsc)
+		return () => {
+			document.removeEventListener('click', onDocClick)
+			document.removeEventListener('keydown', onEsc)
+		}
+	}, [open])
+
 	function selectBoard(value: 'all' | 'none' | string) {
 		activeBoardId.value = value
 		if (activeScopeId.value) savePref(`board:${activeScopeId.value}`, value)
-		onToggle()
+		setOpen(false)
 	}
 
 	async function deleteBoard(boardId: string) {
@@ -314,8 +331,10 @@ function BoardMenu({ open, onToggle }: { open: boolean; onToggle: () => void }) 
 	}
 
 	return html`
-		<div class="filter-menu-wrap">
-			<button class="filter-btn" aria-expanded=${open} onClick=${onToggle}>${label}</button>
+		<div class="filter-menu-wrap board-menu-wrap">
+			<button class="filter-btn" title="Active board" aria-expanded=${open} onClick=${() => setOpen((v) => !v)}>
+				<span class="header-field-label">Board</span>${label}
+			</button>
 			${
 				open &&
 				html`
